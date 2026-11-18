@@ -14,7 +14,7 @@ variables {
 }
 
 override_data {
-  target = module.cluster.data.terraform_remote_state.core_platform
+  target = module.cluster.data.terraform_remote_state.core_platform[0]
   values = {
     outputs = {
       clusters = {
@@ -33,7 +33,7 @@ override_data {
 }
 
 override_data {
-  target = module.cluster.data.terraform_remote_state.dns
+  target = module.cluster.data.terraform_remote_state.dns[0]
   values = {
     outputs = {
       zones = {

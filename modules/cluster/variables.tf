@@ -1,10 +1,17 @@
+variable "cloud" {
+  description = "aws or azure (module.context.cloud)."
+  type        = string
+  default     = "aws"
+
+  validation {
+    condition     = contains(["aws", "azure"], var.cloud)
+    error_message = "cloud must be aws or azure."
+  }
+}
+
 variable "state" {
-  description = "S3 backend settings of the account (module.context.state)."
-  type = object({
-    bucket     = string
-    region     = string
-    kms_key_id = optional(string)
-  })
+  description = "Backend settings (module.context.state). AWS: bucket, region, kms_key_id. Azure: subscription_id, resource_group, storage_account, container."
+  type        = map(string)
 }
 
 variable "env_id" {
