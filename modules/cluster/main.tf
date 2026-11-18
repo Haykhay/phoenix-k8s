@@ -1,4 +1,4 @@
-# Which cluster a k8s-installs unit runs against, read from infrastructure's
+# Which cluster a phoenix-k8s unit runs against, read from infrastructure's
 # state: core-platform (regional) for the cluster, dns (global) for its zone.
 # Both reads default to empty so a missing state fails the plan on the
 # validation below rather than inside a provider.

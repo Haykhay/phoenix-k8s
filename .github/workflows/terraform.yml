@@ -1,0 +1,207 @@
+name: terraform
+
+run-name: >-
+  terraform ${{ inputs.action || 'plan' }}
+  ${{ inputs.config_file || github.ref_name }}
+  ${{ inputs.orchestration_id && format('[{0}]', inputs.orchestration_id) || '' }}
+
+# One run = one unit = one YAML file, path relative to the repo root:
+#   environments/<tier>/<env_id>/<region>/<cluster>/<component>[.<instance>].yaml
+#
+# Backstage calls workflow_dispatch with config_file + action once the
+# cluster's core-platform (phoenix-aws) is applied, prerequisites first,
+# destroying in reverse, and stops the chain on a failed run. Pull requests
+# plan every changed YAML and test every changed module.
+#
+# Removing a unit is a destroy dispatched by Backstage *before* its YAML is
+# deleted; a deleted YAML on its own plans nothing.
+#
+# Units run on the self-hosted runner in the management VPC (EKS endpoints are
+# private); module tests on GitHub-hosted runners.
+
+on:
+  pull_request:
+    paths:
+      - "environments/**.yaml"
+      - "modules/**"
+      - ".github/**"
+  workflow_dispatch:
+    inputs:
+      orchestration_id:
+        description: "Unique Backstage orchestration attempt ID used to correlate this run"
+        required: true
+        type: string
+      config_file:
+        description: "Unit YAML from the repo root, e.g. environments/sandbox/research-sandbox-jdoe/eu-west-1/1/vllm.llama-3-1-8b.yaml"
+        required: true
+        type: string
+      action:
+        description: "plan, apply or destroy (apply/destroy only from main)"
+        required: true
+        type: choice
+        options: [plan, apply, destroy]
+        default: plan
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TERRAFORM_VERSION: "~1.15.0"
+
+jobs:
+  # Which units and modules this run covers.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      units: ${{ steps.diff.outputs.units }}
+      modules: ${{ steps.diff.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          CONFIG_FILE: ${{ inputs.config_file }}
+          ORCHESTRATION_ID: ${{ inputs.orchestration_id }}
+          BASE_REF: ${{ github.base_ref }}
+          REPO: ${{ github.repository }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            [[ "$ORCHESTRATION_ID" =~ ^[A-Za-z0-9._:-]+$ ]] || {
+              echo "::error::orchestration_id has unsupported characters"; exit 1;
+            }
+            files="$CONFIG_FILE"; modules=""
+          else
+            base="origin/$BASE_REF"
+            files=$(git diff --name-only --diff-filter=AMR "$base...HEAD" -- 'environments/**.yaml')
+            # A fork's pull request never schedules work on the self-hosted
+            # runner (it can reach every cluster).
+            if [ -n "$HEAD_REPO" ] && [ "$HEAD_REPO" != "$REPO" ]; then files=""; fi
+            # modules/<name>; _boilerplate is documentation, not a module.
+            modules=$(git diff --name-only "$base...HEAD" -- 'modules/' \
+              | cut -d/ -f1-2 | grep -v '^modules/_boilerplate$' | sort -u || true)
+            # Only directories are modules: files beside them are docs.
+            modules=$(while read -r d; do if [ -d "$d" ]; then printf '%s\n' "$d"; fi; done <<<"$modules")
+          fi
+          units=$(printf '%s\n' "$files" | jq -Rnc '[inputs | select(length > 0)]')
+          modules=$(printf '%s\n' "$modules" | jq -Rnc '[inputs | select(length > 0)]')
+          echo "units=$units" >> "$GITHUB_OUTPUT"
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+          echo "units: $units"; echo "modules: $modules"
+
+  # The unit parser's own tests.
+  script-tests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: .github/scripts/read-unit.test.sh
+
+  # Module changes: terraform test against mock providers, no AWS access.
+  module-tests:
+    needs: changes
+    if: needs.changes.outputs.modules != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.changes.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: terraform test
+        working-directory: ${{ matrix.module }}
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          if ls tests/*.tftest.hcl >/dev/null 2>&1; then terraform test; else terraform validate; fi
+
+  unit:
+    needs: changes
+    if: needs.changes.outputs.units != '[]'
+    runs-on: [self-hosted, phoenix-mgmt]
+    strategy:
+      fail-fast: false
+      matrix:
+        config_file: ${{ fromJSON(needs.changes.outputs.units) }}
+    concurrency:
+      group: tf-${{ matrix.config_file }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read unit
+        id: unit
+        env:
+          FILE: ${{ matrix.config_file }}
+          ACTION: ${{ github.event_name == 'workflow_dispatch' && inputs.action || 'plan' }}
+        run: .github/scripts/read-unit.sh
+
+      # Modules run from the ref the YAML pins: main for sandboxes, a release
+      # tag for stage/UAT/prod. The YAML itself always comes from this checkout.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.unit.outputs.module_ref }}
+          path: src
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.unit.outputs.role_arn }}
+          role-session-name: gha-${{ github.run_id }}-${{ steps.unit.outputs.resource_set }}
+          aws-region: ${{ steps.unit.outputs.aws_region }}
+
+      - name: terraform init
+        working-directory: src/modules/${{ steps.unit.outputs.resource_set }}
+        # The state lives in the unit's account: the backend uses the job's
+        # credentials, as the providers and state reads do.
+        env:
+          STATE_BUCKET: ${{ steps.unit.outputs.state_bucket }}
+          STATE_KEY: ${{ steps.unit.outputs.state_key }}
+          STATE_REGION: ${{ steps.unit.outputs.state_region }}
+          STATE_KMS_KEY_ID: ${{ steps.unit.outputs.state_kms_key_id }}
+        run: |
+          backend="$RUNNER_TEMP/backend.hcl"
+          {
+            printf 'bucket       = "%s"\n' "$STATE_BUCKET"
+            printf 'key          = "%s"\n' "$STATE_KEY"
+            printf 'region       = "%s"\n' "$STATE_REGION"
+            printf 'encrypt      = true\n'
+            printf 'use_lockfile = true\n'
+            if [ -n "$STATE_KMS_KEY_ID" ]; then printf 'kms_key_id   = "%s"\n' "$STATE_KMS_KEY_ID"; fi
+          } > "$backend"
+          terraform init -backend-config="$backend"
+
+      - name: terraform ${{ steps.unit.outputs.action }}
+        working-directory: src/modules/${{ steps.unit.outputs.resource_set }}
+        env:
+          TF_VAR_config_file: ${{ github.workspace }}/${{ matrix.config_file }}
+          TF_VAR_pipeline_user: ${{ github.actor }}
+          UNIT_FILE: ${{ matrix.config_file }}
+        run: |
+          set -o pipefail
+          case "${{ steps.unit.outputs.action }}" in
+            plan)    terraform plan -out=tfplan ;;
+            apply)   terraform apply -auto-approve ;;
+            destroy) terraform destroy -auto-approve ;;
+          esac
+          if [ -f tfplan ]; then
+            {
+              echo "### $UNIT_FILE"
+              echo '```'
+              terraform show -no-color tfplan | tail -n 300
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

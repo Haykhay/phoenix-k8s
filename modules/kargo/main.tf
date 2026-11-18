@@ -6,7 +6,7 @@ resource "terraform_data" "validation" {
     }
     precondition {
       condition     = !local.is_spoke || can(data.terraform_remote_state.management[0].outputs.remote_kubeconfig_secret)
-      error_message = "cluster ${local.cluster_key} is a Kargo spoke of cluster ${local.management_cluster}, whose kargo unit has not been applied. Apply k8s-installs/.../${local.management_cluster}/kargo.yaml first."
+      error_message = "cluster ${local.cluster_key} is a Kargo spoke of cluster ${local.management_cluster}, whose kargo unit has not been applied. Apply environments/.../${local.management_cluster}/kargo.yaml first."
     }
   }
 }

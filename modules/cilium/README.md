@@ -52,7 +52,7 @@ shared segment comes from it. `spec.enabled: false` installs nothing.
 ### The unit file
 
 ```text
-k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/cilium.yaml
+environments/<tier>/<env_id>/<region>/<cluster>/cilium.yaml
 state: <env_id>/<region>/k8s/<cluster>/cilium/terraform.tfstate
 ```
 

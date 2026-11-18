@@ -58,7 +58,7 @@ never back-port.
 ### The unit file
 
 ```text
-k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/llm-d.yaml
+environments/<tier>/<env_id>/<region>/<cluster>/llm-d.yaml
 state: <env_id>/<region>/k8s/<cluster>/llm-d/terraform.tfstate
 ```
 
@@ -69,7 +69,7 @@ The identity block is the same as every unit's (see [`../../README.md`](../../RE
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd k8s-installs/modules/llm-d
+cd modules/llm-d
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/llm-d/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"

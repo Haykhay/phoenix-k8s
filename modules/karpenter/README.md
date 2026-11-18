@@ -53,7 +53,7 @@ not `kubernetes_manifest`: their CRDs arrive with the controller chart, and
 ### The unit file
 
 ```text
-k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/karpenter.yaml
+environments/<tier>/<env_id>/<region>/<cluster>/karpenter.yaml
 state: <env_id>/<region>/k8s/<cluster>/karpenter/terraform.tfstate
 ```
 
@@ -64,7 +64,7 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd k8s-installs/modules/karpenter
+cd modules/karpenter
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/karpenter/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"

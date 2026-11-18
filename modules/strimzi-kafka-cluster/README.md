@@ -51,7 +51,7 @@ spec does not delete its data.
 ### The unit file
 
 ```text
-k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/strimzi-kafka-cluster.<kafka-cluster>.yaml
+environments/<tier>/<env_id>/<region>/<cluster>/strimzi-kafka-cluster.<kafka-cluster>.yaml
 state: <env_id>/<region>/k8s/<cluster>/strimzi-kafka-cluster.<kafka-cluster>/terraform.tfstate
 ```
 
@@ -62,7 +62,7 @@ One file per Kafka cluster: `strimzi-kafka-cluster.<kafka-cluster>.yaml`; the in
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd k8s-installs/modules/strimzi-kafka-cluster
+cd modules/strimzi-kafka-cluster
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/strimzi-kafka-cluster.<kafka-cluster>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"

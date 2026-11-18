@@ -106,7 +106,7 @@ Needs the cluster's `karpenter` unit (controller + CRDs) applied first, and the
 ### The unit file
 
 ```text
-k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/karpenter-nodepool.<gpu-type>.yaml
+environments/<tier>/<env_id>/<region>/<cluster>/karpenter-nodepool.<gpu-type>.yaml
 state: <env_id>/<region>/k8s/<cluster>/karpenter-nodepool.<gpu-type>/terraform.tfstate
 ```
 
@@ -117,7 +117,7 @@ One file per GPU type: `karpenter-nodepool.<gpu-type>.yaml`; the instance name i
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd k8s-installs/modules/karpenter-nodepool
+cd modules/karpenter-nodepool
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/karpenter-nodepool.<gpu-type>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"

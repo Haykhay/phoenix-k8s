@@ -84,7 +84,7 @@ then vllm with the same `spec.version`.
 ### The unit file
 
 ```text
-k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/model-weights.<model>.yaml
+environments/<tier>/<env_id>/<region>/<cluster>/model-weights.<model>.yaml
 state: <env_id>/<region>/k8s/<cluster>/model-weights.<model>/terraform.tfstate
 ```
 
@@ -95,7 +95,7 @@ One file per model, with the same instance name as its vllm unit; the instance n
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd k8s-installs/modules/model-weights
+cd modules/model-weights
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/model-weights.<model>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
