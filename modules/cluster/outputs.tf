@@ -1,5 +1,5 @@
 output "cluster_name" {
-  description = "EKS cluster name."
+  description = "EKS or AKS cluster name."
   value       = local.cluster_name
 }
 
@@ -19,8 +19,8 @@ output "cluster_kms_key_arn" {
 }
 
 output "vpc_id" {
-  description = "The cluster's VPC."
-  value       = try(local.cluster.vpc_id, null)
+  description = "The cluster's VPC (AWS) or VNet ID (Azure)."
+  value       = try(local.azure ? local.cluster.vnet_id : local.cluster.vpc_id, null)
 }
 
 output "node_subnet_ids" {
@@ -50,15 +50,35 @@ output "dns" {
 
 output "dns_zones" {
   description = "Every hosted zone pair of the environment, keyed by name (dns unit's zones), or {}."
-  value       = try(data.terraform_remote_state.dns.outputs.zones, {})
+  value       = try(local.dns_outputs.zones, {})
 }
 
+# AKS facts, for workload identity and Key Vault bindings; null on AWS.
+output "oidc_issuer_url" {
+  description = "The AKS cluster's OIDC issuer (workload identity federation); null on AWS."
+  value       = local.azure ? try(local.cluster.oidc_issuer_url, null) : null
+}
+
+output "key_vault_id" {
+  description = "The environment's Key Vault (secrets); null on AWS."
+  value       = local.azure ? try(local.cluster.key_vault_id, null) : null
+}
+
+output "node_resource_group" {
+  description = "The AKS node resource group; null on AWS."
+  value       = local.azure ? try(local.cluster.node_resource_group, null) : null
+}
+
+output "kubelet_identity_object_id" {
+  description = "Object ID of the AKS kubelet identity (image pulls); null on AWS."
+  value       = local.azure ? try(local.cluster.kubelet_identity_object_id, null) : null
+}
 
 output "exec" {
-  description = "Kubernetes/Helm provider exec block: a fresh token per call, signed with the job's own credentials (Terraform-Role or Terraform-Plan-Role)."
+  description = "Kubernetes/Helm provider exec block: a fresh token per call with the job's own credentials (aws eks get-token on AWS, kubelogin on Azure)."
   value = {
     api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args        = ["eks", "get-token", "--cluster-name", local.cluster_name, "--region", var.region, "--output", "json"]
+    command     = local.exec.command
+    args        = local.exec.args
   }
 }

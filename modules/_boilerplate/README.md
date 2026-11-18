@@ -131,5 +131,5 @@ terraform {
 ## Tests
 
 `tests/<component>.tftest.hcl` mocks aws, helm and kubernetes and overrides
-`module.cluster.data.terraform_remote_state.core_platform` / `.dns`. Every
+`module.cluster.data.terraform_remote_state.core_platform[0]` / `.dns`. Every
 module has at least `plans_with_defaults` and `disabled_plans_nothing`.
