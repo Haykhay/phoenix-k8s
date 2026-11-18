@@ -47,7 +47,7 @@ The plan fails clearly without the environment's dns unit.
 ### The unit file
 
 ```text
-k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/cert-manager.yaml
+environments/<tier>/<env_id>/<region>/<cluster>/cert-manager.yaml
 state: <env_id>/<region>/k8s/<cluster>/cert-manager/terraform.tfstate
 ```
 
@@ -58,7 +58,7 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd k8s-installs/modules/cert-manager
+cd modules/cert-manager
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/cert-manager/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"

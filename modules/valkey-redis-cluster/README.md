@@ -45,7 +45,7 @@ after the cluster — not yet confirmed against a running operator.
 ### The unit file
 
 ```text
-k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/valkey-redis-cluster.<valkey-cluster>.yaml
+environments/<tier>/<env_id>/<region>/<cluster>/valkey-redis-cluster.<valkey-cluster>.yaml
 state: <env_id>/<region>/k8s/<cluster>/valkey-redis-cluster.<valkey-cluster>/terraform.tfstate
 ```
 
@@ -56,7 +56,7 @@ One file per Valkey cluster: `valkey-redis-cluster.<valkey-cluster>.yaml`; the i
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd k8s-installs/modules/valkey-redis-cluster
+cd modules/valkey-redis-cluster
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/valkey-redis-cluster.<valkey-cluster>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"

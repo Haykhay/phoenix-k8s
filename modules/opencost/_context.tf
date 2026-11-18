@@ -1,5 +1,5 @@
 variable "config_file" {
-  description = "Path to this unit's YAML (k8s-installs/environments/<tier>/<env_id>/<region>/<cluster>/<component>[.<instance>].yaml)."
+  description = "Path to this unit's YAML (environments/<tier>/<env_id>/<region>/<cluster>/<component>[.<instance>].yaml)."
   type        = string
 }
 
@@ -10,7 +10,7 @@ variable "pipeline_user" {
 }
 
 module "context" {
-  source = "../../../infrastructure/modules/context"
+  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/context?ref=v1.0.0"
 
   config_file   = var.config_file
   resource_set  = "opencost"

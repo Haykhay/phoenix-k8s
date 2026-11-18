@@ -1,6 +1,6 @@
 # cluster
 
-Shared lookup, not a component: every k8s-installs root calls it to find the
+Shared lookup, not a component: every phoenix-k8s root calls it to find the
 EKS cluster its unit targets. It reads infrastructure's state for the same
 environment:
 

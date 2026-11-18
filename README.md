@@ -1,11 +1,18 @@
-# k8s-installs
+# phoenix-k8s
 
-What runs **inside** each Phoenix EKS cluster (Layer 3). People ask Backstage
+What runs **inside** each Phoenix cluster (Layer 3). People ask Backstage
 for a workload type, a database type, a GPU type and a model; Backstage works
 out the components that needs, writes one YAML per component into this repo,
-and runs them in order through the shared GitHub workflow. Plain Terraform, no
-Terragrunt, no helper scripts. Versions and sizes are decided here, never in
+and runs them in order through this repo's GitHub workflow. Plain Terraform, no
+Terragrunt. Versions and sizes are decided here, never in
 the form.
+
+The accounts, networks and clusters themselves (Layers 1-2) are
+[`phoenix-aws`](https://github.com/Haykhay/phoenix-aws). This repo was split
+out of its `k8s-installs/` folder with history; state keys did not change.
+`modules/context` and `modules/credentials` still come from `phoenix-aws`,
+pinned to a release tag (`?ref=v1.0.0`): moving to a newer tag is one PR here,
+and that PR re-runs every module's tests.
 
 ## Layout
 
@@ -56,7 +63,7 @@ Each module's README has its spec, versions and what it needs first.
 
 ## A unit's YAML
 
-Same identity block as infrastructure, plus `cluster`:
+Same identity block as `phoenix-aws`'s infrastructure units, plus `cluster`:
 
 ```yaml
 # environments/sandbox/research-sandbox-jdoe/eu-west-1/1/vllm.llama-3-1-8b.yaml
@@ -83,9 +90,10 @@ spec:
 
 ## How it runs
 
-The workflow (`../.github/workflows/terraform.yml`, shared with
-infrastructure) checks the path against the YAML (tier, env_id, region,
-cluster, a known component, a valid instance), signs in to the unit's
+The workflow (`.github/workflows/terraform.yml`; the path checks are
+`.github/scripts/read-unit.sh`, tested by `read-unit.test.sh`) checks the path
+against the YAML (tier, env_id, region, cluster, a known component, a valid
+instance), signs in to the unit's
 account as `Terraform-Role` (`Terraform-Plan-Role` for a plan; ADR-0013;
 cluster logins use the same credentials through `module.cluster.exec`, and
 `core-platform` makes `Terraform-Role` cluster-admin and `Terraform-Plan-Role`
@@ -94,12 +102,11 @@ a cluster-wide reader), and runs the unit on the
 are private, and the runner reaches every cluster in the IPAM range
 (networking is designed separately; each cluster allows the runner range
 through core-platform's `ci_runners_cidr`). Module tests run on GitHub-hosted
-runners with mock providers; any change to infrastructure's modules re-runs
-every k8s module's tests too.
+runners with mock providers.
 
 Every component reaches its cluster through `modules/cluster` (endpoint, CA,
 token, subnets, security groups, Karpenter facts from core-platform's state;
-DNS zones from dns) and reuses infrastructure's `modules/context` for naming,
+DNS zones from dns) and reuses `phoenix-aws`'s `modules/context` for naming,
 tags and checks. A unit planned before what it needs (core-platform, dns,
 istio, its GPU pool, the observability unit, a Kargo management cluster)
 fails with a message saying what to apply first.

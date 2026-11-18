@@ -14,3 +14,11 @@ override.tf.json
 # Secrets
 *.pem
 *.key
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Design docs stay local
+docs/superpowers/
+.superpowers/

@@ -10,7 +10,7 @@ resource "terraform_data" "validation" {
 # Passwords at <organisation>/<env_id>/redis/in-cluster/<instance>[/<user>],
 # where external-secrets may read them.
 module "credentials" {
-  source = "../../../infrastructure/modules/credentials"
+  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/credentials?ref=v1.0.0"
 
   organisation = local.organisation
 
