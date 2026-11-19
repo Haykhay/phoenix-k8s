@@ -1,6 +1,7 @@
 acmeEmail: ""
-awsRegion: ""
-publicZoneId: ""
 publicZoneName: ""
-internalZoneId: ""
 internalZoneName: ""
+# DNS-01 solver per zone, from the cloud slice (cloud/<cloud>/slice.tf).
+dns01:
+  public: {}
+  internal: {}

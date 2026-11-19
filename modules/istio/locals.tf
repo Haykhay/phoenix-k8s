@@ -15,22 +15,11 @@ locals {
   public_secret_name   = "wildcard-istio-public-tls"
   internal_secret_name = "wildcard-istio-internal-tls"
 
-  # Gateways get an NLB from aws-load-balancer-controller (IP targets).
-  nlb_annotations = {
-    "service.beta.kubernetes.io/aws-load-balancer-type"            = "external"
-    "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type" = "ip"
-  }
-
   internal_gateway = {
     enabled = try(local.config.settings.gateways.internal.enabled, true)
+    # The cloud's load balancer for each gateway (cloud/<cloud>/slice.tf).
     service_annotations = merge(
-      local.nlb_annotations,
-      {
-        "service.beta.kubernetes.io/aws-load-balancer-scheme" = "internal"
-        # IP targets don't keep the caller's address by default; model access
-        # (vllm spec.access) is decided by it.
-        "service.beta.kubernetes.io/aws-load-balancer-target-group-attributes" = "preserve_client_ip.enabled=true"
-      },
+      local.slice.gateway_service_annotations.internal,
       try(local.config.settings.gateways.internal.service_annotations, {}),
     )
   }
@@ -38,8 +27,7 @@ locals {
   external_gateway = {
     enabled = try(local.config.settings.gateways.external.enabled, false)
     service_annotations = merge(
-      local.nlb_annotations,
-      { "service.beta.kubernetes.io/aws-load-balancer-scheme" = "internet-facing" },
+      local.slice.gateway_service_annotations.public,
       try(local.config.settings.gateways.external.service_annotations, {}),
     )
   }

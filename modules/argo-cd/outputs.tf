@@ -8,18 +8,12 @@ output "repo_public_key" {
   value       = try(tls_private_key.repo[0].public_key_openssh, null)
 }
 
-output "admin_secret" {
-  description = "Secrets Manager secret holding the local admin password."
-  value       = try(aws_secretsmanager_secret.admin[0].name, null)
-}
-
 output "resource_summary" {
-  value = {
+  value = merge({
     environment   = local.environment
     region        = local.region
     cluster       = local.cluster_key
     resource_set  = "argo-cd"
     chart_version = try(helm_release.this[0].version, null)
-    role_arn      = try(aws_iam_role.repo_server[0].arn, null)
-  }
+  }, local.slice.summary)
 }

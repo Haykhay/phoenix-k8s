@@ -1,8 +1,9 @@
 # Istio as the cluster's one Gateway API implementation: for services, and
 # for model serving through the Inference Extension (InferencePool).
 # Gateways terminate TLS with cert-manager wildcards on the cluster's zones
-# and sit behind NLBs, so this needs the aws-load-balancer-controller and
-# cert-manager units (and a dns unit) applied first.
+# and sit behind the cloud's load balancer (on AWS an NLB, so the
+# aws-load-balancer-controller unit), and need cert-manager (and a dns unit)
+# applied first.
 resource "terraform_data" "validation" {
   lifecycle {
     precondition {

@@ -34,10 +34,10 @@ locals {
   kyverno_policies_atomic          = try(local.config.settings.kyverno_policies.atomic, true)
   kyverno_policies_cleanup_on_fail = try(local.config.settings.kyverno_policies.cleanup_on_fail, true)
   policy_mode                      = try(local.config.settings.kyverno_policies.policy_mode, try(local.config.settings.policy_mode, "Audit"))
-  # Platform defaults: any ECR image counts as internal, and internal images
-  # must come from the group account's own registry (its pull-through cache).
-  managed_image_patterns = try(local.config.settings.kyverno_policies.managed_image_patterns, try(local.config.settings.managed_image_patterns, ["*.dkr.ecr.*.amazonaws.com/*"]))
-  allowed_image_patterns = try(local.config.settings.kyverno_policies.allowed_image_patterns, try(local.config.settings.allowed_image_patterns, ["${local.account_id}.dkr.ecr.${local.region}.amazonaws.com/*"]))
+  # Platform defaults from the cloud slice: which images count as internal, and
+  # the environment's own registry they must come from.
+  managed_image_patterns = try(local.config.settings.kyverno_policies.managed_image_patterns, try(local.config.settings.managed_image_patterns, local.slice.registry_patterns.managed))
+  allowed_image_patterns = try(local.config.settings.kyverno_policies.allowed_image_patterns, try(local.config.settings.allowed_image_patterns, local.slice.registry_patterns.allowed))
   excluded_namespaces = try(local.config.settings.kyverno_policies.excluded_namespaces, [
     "kube-system",
     "kube-public",
@@ -45,13 +45,11 @@ locals {
     local.kyverno_namespace,
   ])
 
-  # spec.quotas: { <namespace> = { nvidia = N, neuron = N } }. Kyverno generates
-  # one ResourceQuota per namespace, also into namespaces that already exist.
-  quota_resources = {
-    nvidia = "requests.nvidia.com/gpu"
-    neuron = "requests.aws.amazon.com/neuron"
-  }
-  quotas = try(local.config.quotas, {})
+  # spec.quotas: { <namespace> = { <accelerator> = N } }, the accelerators the
+  # cloud has (the slice's quota_keys). Kyverno generates one ResourceQuota per
+  # namespace, also into namespaces that already exist.
+  quota_resources = local.slice.quota_keys
+  quotas          = try(local.config.quotas, {})
   gpu_quotas = [for ns, q in local.quotas : {
     namespace = ns
     hard      = { for acc, n in q : try(local.quota_resources[acc], acc) => tostring(n) }

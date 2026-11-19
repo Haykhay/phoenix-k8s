@@ -77,3 +77,14 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Nothing else on the cluster depends on it. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`
+and `module "credentials"` (`credentials.tf`; on AWS phoenix-aws's
+`credentials`, Secrets Manager), fed by the root's `credentials_requests`
+and `credentials_publish`:
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `secret_store` | `aws-secretsmanager`, the ClusterSecretStore its ExternalSecrets read from |

@@ -16,8 +16,23 @@ shared="$root/modules/_cloud/$cloud"
 rm -rf "$3"; mkdir -p "$3"; out=$(cd "$3" && pwd -P)
 # The module, without Terraform's working files or other clouds' slices.
 (cd "$module" && tar -cf - --exclude ./.terraform --exclude ./.terraform.lock.hcl --exclude ./cloud .) | (cd "$out" && tar -xf -)
-cp "$shared"/*.tf "$out/"
-if [ -d "$module/cloud/$cloud" ]; then cp "$module/cloud/$cloud"/*.tf "$out/"; fi
+# Added files must never replace one of the module's: refuse a name clash.
+add() {
+  for f in "$@"; do
+    [ -e "$out/$(basename "$f")" ] && { echo "$f would replace $(basename "$f") in the module" >&2; exit 1; }
+    cp "$f" "$out/"
+  done
+}
+add "$shared"/*.tf
+if [ -d "$module/cloud/$cloud" ]; then add "$module/cloud/$cloud"/*.tf; fi
+
+# A module has one required_providers block (Terraform allows no second):
+# the cloud's provider entry goes into the module's own, in versions.tf.
+grep -q '^  required_providers {$' "$out/versions.tf" || { echo "$module/versions.tf has no required_providers block" >&2; exit 1; }
+awk -v entry="$shared/required_providers.hcl" '
+  { print }
+  /^  required_providers \{$/ { while ((getline line < entry) > 0) print line }
+' "$out/versions.tf" > "$out/versions.tf.new" && mv "$out/versions.tf.new" "$out/versions.tf"
 
 # "../x" in the module means <module's parent>/x; Terraform only accepts
 # relative local sources, so point them at the same place from <out-dir>.

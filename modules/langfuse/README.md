@@ -84,3 +84,13 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Nothing else on the cluster depends on it. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`
+and `data.terraform_remote_state.observability` (`state.tf`, same name on
+every cloud):
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `object_storage` | the chart's `s3` fields for S3: `storageProvider: s3`, bucket, region, virtual-hosted addressing; merged with the root's prefixes |

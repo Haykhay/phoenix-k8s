@@ -67,3 +67,15 @@ None besides `resource_summary` (what was planned, for the pipeline's summary).
 ### Removing it
 
 Used by: every `volume` (`phoenix-block`). Backstage destroys in reverse install order, so volumes go first.
+
+## Cloud slice
+
+`cloud/<cloud>/slice.tf` (staged in by `scripts/stage-module`) defines `local.slice`:
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `default_class_name`, `default_class_values` | `gp3`: the chart's default StorageClass, encrypted, volumes tagged like the unit |
+| `block_class` | `{ provisioner, parameters }` of `phoenix-block`: `ebs.csi.aws.com`, encrypted gp3, the same tags |
+
+The `cluster-config` chart's StorageClass template is EBS's; another cloud
+turns it off (`ebs.enabled = false`) and keeps its own default class.

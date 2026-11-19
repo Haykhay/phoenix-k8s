@@ -20,10 +20,6 @@ mimir:
       enabled: false
     common:
       storage:
-        backend: s3
-        s3:
-          bucket_name: ${bucket}
-          endpoint: s3.${region}.amazonaws.com
-          region: ${region}
+        ${indent(8, yamlencode(mimir_storage))}
     blocks_storage:
       storage_prefix: ${mimir_prefix}

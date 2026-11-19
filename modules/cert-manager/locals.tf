@@ -21,8 +21,4 @@ locals {
   enable_gateway_api = try(local.config.settings.enable_gateway_api, false)
 
   dns = module.cluster.dns
-  hosted_zone_arns = coalesce(try(local.config.settings.hosted_zone_arns, null), [
-    "arn:aws:route53:::hostedzone/${try(local.dns.public_zone_id, "dns-missing")}",
-    "arn:aws:route53:::hostedzone/${try(local.dns.internal_zone_id, "dns-missing")}",
-  ])
 }

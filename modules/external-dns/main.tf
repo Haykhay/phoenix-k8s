@@ -18,19 +18,20 @@ resource "helm_release" "this" {
 
   values = [yamlencode(merge(
     {
-      provider       = { name = "aws" }
-      sources        = ["service", "ingress", "gateway-httproute"]
-      serviceAccount = { create = true, name = local.service_account_name }
+      sources = ["service", "ingress", "gateway-httproute"]
+      serviceAccount = {
+        create      = true
+        name        = local.service_account_name
+        annotations = local.slice.service_account_annotations
+      }
       # Only resources that ask for a record.
       annotationFilter = "external-dns.alpha.kubernetes.io/hostname"
       txtOwnerId       = local.txt_owner_id
       policy           = try(local.config.settings.policy, "upsert-only")
-      # The chart has no zoneIdFilters value; the filter is container args.
-      extraArgs = [for id in local.route53_zone_ids : "--zone-id-filter=${id}"]
-      env       = [{ name = "AWS_DEFAULT_REGION", value = local.region }]
     },
+    local.slice.provider_values,
     local.config.app_version == "" ? {} : { image = { tag = "v${local.config.app_version}" } },
   ))]
 
-  depends_on = [terraform_data.validation, aws_iam_role_policy_attachment.this, time_sleep.pod_identity_propagation]
+  depends_on = [terraform_data.validation, terraform_data.slice_ready]
 }

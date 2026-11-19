@@ -5,9 +5,4 @@ serviceAccount:
 tempo:
   storage:
     trace:
-      backend: s3
-      s3:
-        bucket: ${bucket}
-        prefix: ${tempo_prefix}
-        endpoint: s3.${region}.amazonaws.com
-        region: ${region}
+      ${indent(6, yamlencode(tempo_storage))}

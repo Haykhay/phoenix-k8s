@@ -89,3 +89,11 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Destroy these first, on the same cluster: `argo-cd`, `langfuse`, `vllm`. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/slice.tf` (staged in by `scripts/stage-module`) defines `local.slice`:
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `gateway_service_annotations` | `{ internal, public }`: an NLB from aws-load-balancer-controller with IP targets; internal keeps the client IP. `settings.gateways.<gw>.service_annotations` still merge on top |

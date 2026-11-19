@@ -9,7 +9,7 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: aws-secretsmanager
+    name: {{ $.Values.secretStore }}
     kind: ClusterSecretStore
   target:
     name: global-metrics

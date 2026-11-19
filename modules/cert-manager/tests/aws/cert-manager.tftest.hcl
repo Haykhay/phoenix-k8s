@@ -78,7 +78,7 @@ run "issuers_use_cluster_zone" {
 
   assert {
     condition = alltrue([
-      yamldecode(helm_release.cluster_issuers[0].values[0]).publicZoneId == "Z1PUB",
+      yamldecode(helm_release.cluster_issuers[0].values[0]).dns01.public.route53.hostedZoneID == "Z1PUB",
       yamldecode(helm_release.cluster_issuers[0].values[0]).internalZoneName == "internal.sandbox.research.example.com",
       yamldecode(helm_release.cluster_issuers[0].values[0]).acmeEmail == "",
     ])

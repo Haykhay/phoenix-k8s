@@ -17,9 +17,9 @@ locals {
   txt_owner_id = coalesce(try(local.config.settings.txt_owner_id, null), local.name_prefix)
 
   # The cluster's own zone by default; naming zone keys widens both what it
-  # reconciles and what its IAM policy allows.
+  # reconciles and what its cloud identity may write.
   zone_keys = try(local.config.settings.providers.route53.zones, [])
-  route53_zone_ids = length(local.zone_keys) > 0 ? flatten([
+  zone_ids = length(local.zone_keys) > 0 ? flatten([
     for key in local.zone_keys : [
       module.cluster.dns_zones[key].public_zone_id,
       module.cluster.dns_zones[key].internal_zone_id,

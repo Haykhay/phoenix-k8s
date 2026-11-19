@@ -55,7 +55,7 @@ resource "helm_release" "kyverno_policies" {
 
     precondition {
       condition     = alltrue([for ns, q in local.quotas : alltrue([for acc, n in q : contains(keys(local.quota_resources), acc)])])
-      error_message = "spec.quotas: each namespace's accelerators must be nvidia or neuron."
+      error_message = "spec.quotas: each namespace's accelerators must be one of ${join(", ", sort(keys(local.quota_resources)))}."
     }
 
     precondition {

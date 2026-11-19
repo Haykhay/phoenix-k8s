@@ -23,9 +23,10 @@ resource "helm_release" "this" {
   values = [templatefile("${path.module}/manifests/values.yaml.tpl", {
     url_host            = local.hostname
     admin_password_hash = local.argocd_admin_password_hash
+    sa_annotations      = local.slice.service_account_annotations
   })]
 
-  depends_on = [terraform_data.validation, time_sleep.pod_identity_propagation]
+  depends_on = [terraform_data.validation, terraform_data.slice_ready]
 }
 
 # The repository Secret for the bootstrap app (deploy key generated here).
@@ -37,18 +38,6 @@ resource "helm_release" "repo_secret" {
 
   set           = [{ name = "repoUrl", value = local.repo_url }]
   set_sensitive = [{ name = "sshPrivateKey", value = local.argocd_repo_ssh_private_key }]
-
-  depends_on = [helm_release.this]
-}
-
-# OCI Helm repository credentials for the group account's ECR (pull-through cache).
-resource "helm_release" "ecr_credentials" {
-  count     = local.config.enabled ? 1 : 0
-  name      = "argocd-ecr-credentials"
-  chart     = "${path.module}/manifests/ecr-credentials"
-  namespace = local.namespace
-
-  values = [yamlencode({ region = local.region, accountIds = [local.account_id] })]
 
   depends_on = [helm_release.this]
 }

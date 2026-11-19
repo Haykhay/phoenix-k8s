@@ -12,26 +12,13 @@ loki:
     configs:
       - from: "2026-01-01"
         store: tsdb
-        object_store: s3
+        object_store: ${loki_schema_store}
         schema: v13
         index:
           prefix: index_
           period: 24h
   storage:
-    type: s3
-    bucketNames:
-      chunks: ${bucket}
-      ruler: ${bucket}
-      admin: ${bucket}
-    s3:
-      region: ${region}
-    use_thanos_objstore: true
-    object_store:
-      type: s3
-      storage_prefix: ${loki_prefix}
-      s3:
-        endpoint: s3.${region}.amazonaws.com
-        region: ${region}
+    ${indent(4, yamlencode(loki_storage))}
 singleBinary:
   replicas: 1
 read:

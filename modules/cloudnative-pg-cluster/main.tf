@@ -11,20 +11,15 @@ resource "terraform_data" "validation" {
   }
 }
 
-# Passwords and their Secrets Manager entries, on the platform's shared policy,
-# at <organisation>/<env_id>/postgres/in-cluster/<instance>[/<database>] —
-# where external-secrets may read them.
-module "credentials" {
-  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/credentials?ref=v1.1.0"
-
-  organisation = local.organisation
-
-  credentials = local.config.enabled ? merge(
+# What the credentials module creates and publishes (cloud/<cloud>/credentials.tf:
+# Secrets Manager on AWS), in the platform's shared policies.
+locals {
+  credentials_requests = local.config.enabled ? merge(
     { superuser = { policy = "postgres_incluster", username = "postgres" } },
     { for name, db in local.databases : "db-${name}" => { policy = "postgres_incluster", username = db.role } },
   ) : {}
 
-  publish = local.config.enabled ? merge(
+  credentials_publish = local.config.enabled ? merge(
     {
       superuser = {
         environment = local.environment
@@ -70,13 +65,15 @@ resource "helm_release" "cluster" {
   cleanup_on_fail  = true
 
   values = [yamlencode({
+    secretStore           = local.slice.secret_store
     clusterName           = local.pg_cluster_name
     superuserSmSecretName = module.credentials.secret_names["superuser"]
     instances             = local.config.instances
     storageSize           = local.config.storage_size
     nlb = {
-      enabled  = local.config.nlb_enabled
-      hostname = local.nlb_hostname == null ? "" : local.nlb_hostname
+      enabled     = local.config.nlb_enabled
+      hostname    = local.nlb_hostname == null ? "" : local.nlb_hostname
+      annotations = local.slice.lb_annotations
     }
     databases = [
       for name, db in local.databases : {

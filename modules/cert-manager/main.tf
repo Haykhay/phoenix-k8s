@@ -20,15 +20,16 @@ resource "helm_release" "this" {
     {
       crds           = { enabled = local.install_crds }
       config         = { enableGatewayAPI = local.enable_gateway_api }
-      serviceAccount = { name = local.service_account_name }
+      serviceAccount = { name = local.service_account_name, annotations = local.slice.service_account_annotations }
     },
     local.config.app_version == "" ? {} : { image = { tag = local.config.app_version } },
   ))]
 
-  depends_on = [terraform_data.validation, aws_iam_role_policy_attachment.this, time_sleep.pod_identity_propagation]
+  depends_on = [terraform_data.validation, terraform_data.slice_ready]
 }
 
-# Let's Encrypt prod + staging, DNS-01 through Route53 in the cluster's zones.
+# Let's Encrypt prod + staging, DNS-01 in the cluster's zones (the solver is
+# the cloud slice's).
 resource "helm_release" "cluster_issuers" {
   count     = local.config.enabled ? 1 : 0
   name      = "cert-manager-cluster-issuers"
@@ -37,11 +38,9 @@ resource "helm_release" "cluster_issuers" {
 
   values = [yamlencode({
     acmeEmail        = local.acme_email
-    awsRegion        = local.region
-    publicZoneId     = try(local.dns.public_zone_id, "")
     publicZoneName   = try(local.dns.public_zone_name, "")
-    internalZoneId   = try(local.dns.internal_zone_id, "")
     internalZoneName = try(local.dns.internal_zone_name, "")
+    dns01            = local.slice.dns01_solver
   })]
 
   depends_on = [helm_release.this]

@@ -16,8 +16,8 @@ resource "terraform_data" "validation" {
       error_message = "spec.size_gib is required: a whole number of GiB, 1 or more."
     }
     precondition {
-      condition     = !local.config.enabled || local.config.storage_class != "phoenix-shared" || local.lustre_size
-      error_message = "phoenix-shared sizes are 1200 GiB or a multiple of 2400 GiB (FSx for Lustre); got ${coalesce(local.size, 0)}."
+      condition     = !local.config.enabled || local.config.storage_class != "phoenix-shared" || local.slice.shared_size_valid
+      error_message = "phoenix-shared sizes are ${local.slice.shared_size_rule}; got ${coalesce(local.size, 0)}."
     }
     precondition {
       condition     = !local.config.enabled || (local.config.namespace != null && !contains(local.system_namespaces, coalesce(local.config.namespace, "default")))

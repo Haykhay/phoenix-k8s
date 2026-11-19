@@ -73,3 +73,11 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Nothing else on the cluster depends on it. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/slice.tf` (staged in by `scripts/stage-module`) defines `local.slice`:
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `pricing_values` | `{}`: OpenCost detects AWS and uses its public list prices; merged into the chart's `opencost` values |
