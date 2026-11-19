@@ -1,7 +1,3 @@
-data "aws_vpc" "cluster" {
-  id = module.cluster.vpc_id
-}
-
 resource "helm_release" "this" {
   count           = local.config.enabled ? 1 : 0
   name            = local.release_name

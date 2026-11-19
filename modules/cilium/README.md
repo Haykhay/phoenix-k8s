@@ -62,3 +62,13 @@ Tests, no AWS needed: `scripts/test-module modules/cilium` (`chaining_values`, `
 
 Destroying it removes the default policy first, then Cilium; pods keep their
 VPC CNI networking.
+
+## Cloud slice
+
+`cloud/<cloud>/slice.tf` (staged in by `scripts/stage-module`) defines `local.slice`:
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `values` | chaining with the VPC CNI (`aws-cni`), native routing, no masquerade |
+| `cluster_cidrs` | the cluster VPC's CIDR (looked up with `aws_vpc`) |
+| `metadata_cidrs` | Pod Identity agent and instance metadata (`169.254.170.23/32`, `169.254.169.254/32`) |
