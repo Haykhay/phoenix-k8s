@@ -121,3 +121,20 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Used by: vllm (the model it serves). Destroy that first. Destroying this unit removes the Job record only: the weights stay in S3, since the copy role cannot delete. Removing a version from the bucket is a deliberate step outside Phoenix.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`
+and `terraform_data.slice_ready` (the job waits on it):
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `service_account_annotations` | `{}` (Pod Identity binds the job to model-store's writer role) |
+| `store` | model-store's outputs (`bucket_name`, `writer_role_arn`) from its S3 state |
+| `copy_job` | `{ image }` of the upload step (`amazon/aws-cli`) |
+| `slice_ready` | Pod Identity propagated |
+
+AWS-only, in `cloud/aws/`: the Pod Identity association (`iam.tf`), the
+model-store state read (`model_store.tf`) and the `s3_prefix` output. The
+weights-job chart's upload commands are still `aws s3`; the Azure slice makes
+them the slice's.

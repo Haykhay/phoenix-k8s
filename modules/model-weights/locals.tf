@@ -25,10 +25,9 @@ locals {
   : replace(lower(local.version), "/[._]/", "-"))
   release = "weights-${local.model}-${local.version_slug}"
 
-  store     = try(data.terraform_remote_state.model_store.outputs, {})
-  bucket    = try(local.store.bucket_name, "missing")
-  key       = "${local.model}/${local.version}"
-  s3_prefix = "s3://${local.bucket}/${local.key}/"
+  store  = local.slice.store
+  bucket = try(local.store.bucket_name, "missing")
+  key    = "${local.model}/${local.version}"
 
   # Hugging Face keeps vllm's token path; other sources get their own. An s3
   # source reads with the copy role, so it never has one.
@@ -39,7 +38,7 @@ locals {
   )
 
   images = {
-    upload = "amazon/aws-cli:2.38.0"        # 2026-10-13
+    upload = local.slice.copy_job.image
     s3     = "amazon/aws-cli:2.38.0"        # 2026-10-13
     https  = "curlimages/curl:8.22.0"       # 2026-09-02
     hf     = "python:3.13.16-slim-bookworm" # 2026-09-30

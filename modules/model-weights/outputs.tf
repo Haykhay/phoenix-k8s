@@ -15,13 +15,8 @@ output "source" {
   value       = { type = local.source.type, uri = local.source.uri }
 }
 
-output "s3_prefix" {
-  description = "Copied weights: s3://<bucket>/<model>/<version>/, complete once _COMPLETE exists."
-  value       = local.copied ? local.s3_prefix : null
-}
-
 output "cache_path" {
-  description = "Where model servers find the weights through the FSx cache."
+  description = "Where model servers find the weights through the cluster's model cache."
   value       = local.copied ? "/models/${local.key}" : null
 }
 
