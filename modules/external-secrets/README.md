@@ -98,3 +98,18 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Destroy these first, on the same cluster: `argo-cd`, `cloudnative-pg-cluster`, `strimzi-kafka-cluster`, `valkey-redis-cluster`, `vllm`. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`
+and `terraform_data.slice_ready` (the operator waits on it):
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `service_account_annotations` | `{}` (Pod Identity binds the role) |
+| `cluster_secret_store` | `{ chart, set, names }`: `manifests/cluster-secret-stores` with `awsRegion`; stores `aws-secretsmanager`, `aws-ssm` |
+| `summary` | `{ role_arn }`, merged into `resource_summary` |
+| `slice_ready` | the IAM role attached and Pod Identity propagated |
+
+The IAM role and policy (`iam.tf`), the ARN scoping locals and the `role_arn`
+output are AWS-only and live in `cloud/aws/`.
