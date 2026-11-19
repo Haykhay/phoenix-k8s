@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# test-module <module-dir> [cloud...]
+# A component is tested per cloud: for each tests/<cloud>/ (or the clouds
+# named), stage it (scripts/stage-module) and run terraform test there. A plain
+# child module (cluster) keeps its tests in tests/ and is tested in place.
+# Prints "<module> <cloud|-> <passed> <failed>" per run; exits non-zero on any
+# failure. TF overrides the terraform binary.
+set -uo pipefail
+[ $# -ge 1 ] || { echo "usage: test-module <module-dir> [cloud...]" >&2; exit 2; }
+tf=${TF:-terraform}
+module=$(cd "$1" && pwd -P); shift
+name=$(basename "$module")
+root=$(cd "$(dirname "$0")/.." && pwd -P)
+work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
+status=0
+
+# terraform test in <dir>, with optional -test-directory; prints the counts.
+run() {
+  local label=$1 dir=$2; shift 2
+  local log="$work/$label.log" line passed failed
+  (cd "$dir" && "$tf" init -backend=false -input=false -no-color >"$log" 2>&1 && "$tf" test -no-color "$@" >>"$log" 2>&1)
+  local rc=$?
+  line=$(grep -E '^(Success|Failure)!' "$log" | tail -1)
+  passed=$(sed -nE 's/.* ([0-9]+) passed.*/\1/p' <<<"$line"); failed=$(sed -nE 's/.* ([0-9]+) failed.*/\1/p' <<<"$line")
+  echo "$name $label ${passed:-0} ${failed:-ERR}"
+  if [ $rc -ne 0 ]; then status=1; sed 's/^/    /' "$log" | tail -40 >&2; fi
+}
+
+if ls "$module"/tests/*.tftest.hcl >/dev/null 2>&1; then
+  run - "$module"
+fi
+clouds=("$@")
+if [ ${#clouds[@]} -eq 0 ]; then
+  for d in "$module"/tests/*/; do
+    [ -d "$d" ] || continue
+    c=$(basename "$d"); [ "$c" = fixtures ] || clouds+=("$c")
+  done
+fi
+for c in ${clouds[@]+"${clouds[@]}"}; do
+  [ -d "$module/tests/$c" ] || { echo "$name $c 0 ERR (no tests/$c)"; status=1; continue; }
+  "$root/scripts/stage-module" "$module" "$c" "$work/stage-$c" >/dev/null || { echo "$name $c 0 ERR (staging)"; status=1; continue; }
+  run "$c" "$work/stage-$c" -test-directory="tests/$c"
+done
+exit $status

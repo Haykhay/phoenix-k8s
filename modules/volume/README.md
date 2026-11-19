@@ -61,14 +61,15 @@ state: <env_id>/<region>/k8s/<cluster>/volume.<claim name>/terraform.tfstate
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/volume
+scripts/stage-module modules/volume aws /tmp/volume   # from the repo root: the module plus _cloud/aws
+cd /tmp/volume
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/volume.<claim name>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/volume.<claim name>.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_block_volume`, `shared_volume_is_read_write_many`, `volume_rejects_unknown_class`, `volume_requires_size`, `shared_size_in_lustre_steps`, `volume_rejects_system_namespace`, `volume_needs_a_name`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/volume` (`plans_block_volume`, `shared_volume_is_read_write_many`, `volume_rejects_unknown_class`, `volume_requires_size`, `shared_size_in_lustre_steps`, `volume_rejects_system_namespace`, `volume_needs_a_name`, `disabled_plans_nothing`).
 
 ### Outputs
 

@@ -1,8 +1,14 @@
 # Component boilerplate
 
-Not a module. Every component under `modules/` starts with these four files,
+Not a module. Every component under `modules/` starts with these three files,
 copied verbatim; only `resource_set` in `_context.tf` changes (the module's
 directory name). Do not add `variables` beyond these two.
+
+The cloud's backend and provider are not in the component: they come from
+[`modules/_cloud/<cloud>/`](../_cloud) when the module is staged for the
+unit's cloud (`scripts/stage-module <module> <cloud> <out>`), together with
+the component's own `cloud/<cloud>/*.tf` slice, if it has one. Files at the
+module root must not name an `aws_*` or `azurerm_*` address.
 
 ## `_context.tf`
 
@@ -19,7 +25,7 @@ variable "pipeline_user" {
 }
 
 module "context" {
-  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/context?ref=v1.0.0"
+  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/context?ref=v1.1.0"
 
   config_file   = var.config_file
   resource_set  = "COMPONENT"
@@ -29,6 +35,7 @@ module "context" {
 module "cluster" {
   source = "../cluster"
 
+  cloud    = module.context.cloud
   state    = module.context.state
   env_id   = module.context.env_id
   region   = module.context.region
@@ -53,30 +60,18 @@ locals {
 ## `providers.tf`
 
 ```hcl
-provider "aws" {
-  region              = local.region
-  allowed_account_ids = [local.account_id]
-
-  default_tags {
-    tags = merge(
-      module.context.tags,
-      { Cluster = local.cluster_key },
-      local.instance == null ? {} : { Instance = local.instance },
-    )
-  }
-}
-
-# A fresh EKS token per call (aws eks get-token): a token fetched once per
-# run expires after 15 minutes, and Helm waits can be longer (vLLM: 30).
-# The runner needs the aws CLI.
+# A fresh cluster token per call (module.cluster.exec: aws eks get-token, or
+# kubelogin on Azure): a token fetched once per run expires after 15 minutes,
+# and Helm waits can be longer (vLLM: 30). The runner needs the aws CLI or
+# kubelogin. The cloud's own provider comes from modules/_cloud/<cloud>.
 provider "helm" {
   kubernetes = {
     host                   = module.cluster.cluster_endpoint
     cluster_ca_certificate = base64decode(module.cluster.cluster_ca_data)
     exec = {
       api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "aws"
-      args        = ["eks", "get-token", "--cluster-name", local.cluster_name, "--region", local.region, "--output", "json"]
+      command     = module.cluster.exec.command
+      args        = module.cluster.exec.args
     }
   }
 }
@@ -86,32 +81,21 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(module.cluster.cluster_ca_data)
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    args        = ["eks", "get-token", "--cluster-name", local.cluster_name, "--region", local.region, "--output", "json"]
+    command     = module.cluster.exec.command
+    args        = module.cluster.exec.args
   }
 }
 ```
 
-## `backend.tf`
-
-```hcl
-# Partial: the workflow supplies bucket, key, region, encrypt, use_lockfile.
-terraform {
-  backend "s3" {}
-}
-```
-
 ## `versions.tf`
+
+The cloud provider (`aws`, `azurerm`) is declared in `_cloud/<cloud>/versions.tf`.
 
 ```hcl
 terraform {
   required_version = ">= 1.15.0"
 
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
     helm = {
       source  = "hashicorp/helm"
       version = "~> 3.0"
@@ -130,6 +114,15 @@ terraform {
 
 ## Tests
 
-`tests/<component>.tftest.hcl` mocks aws, helm and kubernetes and overrides
-`module.cluster.data.terraform_remote_state.core_platform[0]` / `.dns`. Every
-module has at least `plans_with_defaults` and `disabled_plans_nothing`.
+One folder per cloud: `tests/aws/<component>.tftest.hcl` (and `tests/azure/`
+once the component has an Azure slice); fixtures stay in `tests/fixtures/`.
+They mock the cloud provider, helm and kubernetes, and override
+`module.cluster.data.terraform_remote_state.core_platform[0]` / `.dns[0]` (AWS)
+or `.core_platform_azure[0]` / `.dns_azure[0]` (Azure). Every module has at
+least `plans_with_defaults` and `disabled_plans_nothing`.
+
+```bash
+scripts/test-module modules/<component>          # every cloud it has tests for
+scripts/test-module modules/<component> aws      # one cloud
+scripts/test-all                                 # every module
+```

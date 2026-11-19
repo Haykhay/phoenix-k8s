@@ -47,14 +47,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/aws-load-balancer-controller
+scripts/stage-module modules/aws-load-balancer-controller aws /tmp/aws-load-balancer-controller   # from the repo root: the module plus _cloud/aws
+cd /tmp/aws-load-balancer-controller
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/aws-load-balancer-controller/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/aws-load-balancer-controller.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `personal_env_names_fit`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/aws-load-balancer-controller` (`plans_with_defaults`, `personal_env_names_fit`, `disabled_plans_nothing`).
 
 ### Outputs
 

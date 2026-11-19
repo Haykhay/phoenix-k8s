@@ -95,14 +95,15 @@ One file per model, with the same instance name as its vllm unit; the instance n
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/model-weights
+scripts/stage-module modules/model-weights aws /tmp/model-weights   # from the repo root: the module plus _cloud/aws
+cd /tmp/model-weights
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/model-weights.<model>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/model-weights.<model>.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `s3_source`, `https_source`, `versions_are_separate_paths`, `first_version_release_name`, `bad_source_rejected_*` (four), `missing_model_store_rejected`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/model-weights` (`plans_with_defaults`, `s3_source`, `https_source`, `versions_are_separate_paths`, `first_version_release_name`, `bad_source_rejected_*` (four), `missing_model_store_rejected`, `disabled_plans_nothing`).
 
 ### Outputs
 

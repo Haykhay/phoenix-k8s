@@ -56,7 +56,7 @@ environments/<tier>/<env_id>/<region>/<cluster>/cilium.yaml
 state: <env_id>/<region>/k8s/<cluster>/cilium/terraform.tfstate
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`chaining_values`, `default_policy_destinations`, `egress_allow_extends_policy`, `disabled_plans_nothing`). The policy chart renders with `helm template manifests/cilium-policy`.
+Tests, no AWS needed: `scripts/test-module modules/cilium` (`chaining_values`, `default_policy_destinations`, `egress_allow_extends_policy`, `disabled_plans_nothing`). The policy chart renders with `helm template manifests/cilium-policy`.
 
 ### Removing it
 

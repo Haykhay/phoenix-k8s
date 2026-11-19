@@ -117,14 +117,15 @@ One file per GPU type: `karpenter-nodepool.<gpu-type>.yaml`; the instance name i
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/karpenter-nodepool
+scripts/stage-module modules/karpenter-nodepool aws /tmp/karpenter-nodepool   # from the repo root: the module plus _cloud/aws
+cd /tmp/karpenter-nodepool
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/karpenter-nodepool.<gpu-type>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/karpenter-nodepool.<gpu-type>.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`gpu_pool_from_instance`, `two_gpu_types_do_not_collide`, `families_required`, `disabled_plans_nothing`, `on_demand_by_default`, `reservations_used_first`, `reserved_only`, `no_capacity_rejected`, `efa_pool`, `efa_needs_capable_family`, `nvidia_by_default`, `neuron_pool`, `unknown_accelerator_rejected`, `time_slice_labels_nodes`, `no_time_slicing_by_default`, `time_slice_rejected_on_neuron`, `time_slice_needs_a_profile`).
+Tests, no AWS needed: `scripts/test-module modules/karpenter-nodepool` (`gpu_pool_from_instance`, `two_gpu_types_do_not_collide`, `families_required`, `disabled_plans_nothing`, `on_demand_by_default`, `reservations_used_first`, `reserved_only`, `no_capacity_rejected`, `efa_pool`, `efa_needs_capable_family`, `nvidia_by_default`, `neuron_pool`, `unknown_accelerator_rejected`, `time_slice_labels_nodes`, `no_time_slicing_by_default`, `time_slice_rejected_on_neuron`, `time_slice_needs_a_profile`).
 
 ### Outputs
 

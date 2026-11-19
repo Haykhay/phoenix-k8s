@@ -62,14 +62,15 @@ One file per database cluster: `cloudnative-pg-cluster.<database-cluster>.yaml`;
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/cloudnative-pg-cluster
+scripts/stage-module modules/cloudnative-pg-cluster aws /tmp/cloudnative-pg-cluster   # from the repo root: the module plus _cloud/aws
+cd /tmp/cloudnative-pg-cluster
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/cloudnative-pg-cluster.<database-cluster>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/cloudnative-pg-cluster.<database-cluster>.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `two_instances_do_not_collide`, `missing_instance_rejected`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/cloudnative-pg-cluster` (`plans_with_defaults`, `two_instances_do_not_collide`, `missing_instance_rejected`, `disabled_plans_nothing`).
 
 ### Outputs
 

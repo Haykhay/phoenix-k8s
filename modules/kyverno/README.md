@@ -77,14 +77,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/kyverno
+scripts/stage-module modules/kyverno aws /tmp/kyverno   # from the repo root: the module plus _cloud/aws
+cd /tmp/kyverno
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/kyverno/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/kyverno.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `bad_policy_mode_rejected`, `disabled_plans_nothing`, `no_quota_by_default`, `quota_renders_per_accelerator`, `quota_rejects_unknown_accelerator`, `quota_rejects_system_namespace`, `quota_rejects_negative`).
+Tests, no AWS needed: `scripts/test-module modules/kyverno` (`plans_with_defaults`, `bad_policy_mode_rejected`, `disabled_plans_nothing`, `no_quota_by_default`, `quota_renders_per_accelerator`, `quota_rejects_unknown_accelerator`, `quota_rejects_system_namespace`, `quota_rejects_negative`).
 
 ### Outputs
 

@@ -59,14 +59,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/nvidia-gpu-operator
+scripts/stage-module modules/nvidia-gpu-operator aws /tmp/nvidia-gpu-operator   # from the repo root: the module plus _cloud/aws
+cd /tmp/nvidia-gpu-operator
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/nvidia-gpu-operator/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/nvidia-gpu-operator.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`driver_disabled_dcgm_on`, `disabled_plans_nothing`, `operator_renders_slicing_config`, `no_slicing_profiles_no_config`).
+Tests, no AWS needed: `scripts/test-module modules/nvidia-gpu-operator` (`driver_disabled_dcgm_on`, `disabled_plans_nothing`, `operator_renders_slicing_config`, `no_slicing_profiles_no_config`).
 
 ### Outputs
 

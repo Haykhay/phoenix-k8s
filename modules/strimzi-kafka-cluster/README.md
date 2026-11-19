@@ -62,14 +62,15 @@ One file per Kafka cluster: `strimzi-kafka-cluster.<kafka-cluster>.yaml`; the in
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/strimzi-kafka-cluster
+scripts/stage-module modules/strimzi-kafka-cluster aws /tmp/strimzi-kafka-cluster   # from the repo root: the module plus _cloud/aws
+cd /tmp/strimzi-kafka-cluster
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/strimzi-kafka-cluster.<kafka-cluster>/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/strimzi-kafka-cluster.<kafka-cluster>.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `two_instances_do_not_collide`, `missing_instance_rejected`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/strimzi-kafka-cluster` (`plans_with_defaults`, `two_instances_do_not_collide`, `missing_instance_rejected`, `disabled_plans_nothing`).
 
 ### Outputs
 

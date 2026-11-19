@@ -149,14 +149,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/grafana-stack
+scripts/stage-module modules/grafana-stack aws /tmp/grafana-stack   # from the repo root: the module plus _cloud/aws
+cd /tmp/grafana-stack
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/grafana-stack/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/grafana-stack.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `bindings_match_core_platform`, `gpu_metrics_scraped`, `bucket_from_observability_state`, `missing_observability_rejected`, `disabled_plans_nothing`, `model_serving_dashboards`, `cost_dashboard_provisioned`, `model_serving_off`, `global_write_off_by_default`, `global_write_allowlist`, `global_write_requires_https`, `receiver_is_internal_only`, `receiver_requires_auth`, `global_cost_dashboard`, `receiver_needs_internal_gateway`, `missing_global_credential_keeps_alloy_running`, `scale_to_zero_models_not_idle`).
+Tests, no AWS needed: `scripts/test-module modules/grafana-stack` (`plans_with_defaults`, `bindings_match_core_platform`, `gpu_metrics_scraped`, `bucket_from_observability_state`, `missing_observability_rejected`, `disabled_plans_nothing`, `model_serving_dashboards`, `cost_dashboard_provisioned`, `model_serving_off`, `global_write_off_by_default`, `global_write_allowlist`, `global_write_requires_https`, `receiver_is_internal_only`, `receiver_requires_auth`, `global_cost_dashboard`, `receiver_needs_internal_gateway`, `missing_global_credential_keeps_alloy_running`, `scale_to_zero_models_not_idle`).
 
 ### Outputs
 

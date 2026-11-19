@@ -72,14 +72,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/kargo
+scripts/stage-module modules/kargo aws /tmp/kargo   # from the repo root: the module plus _cloud/aws
+cd /tmp/kargo
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/kargo/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/kargo.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`management_mode_on_cluster_1`, `spoke_mode_on_cluster_2`, `spoke_without_management_rejected`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/kargo` (`management_mode_on_cluster_1`, `spoke_mode_on_cluster_2`, `spoke_without_management_rejected`, `disabled_plans_nothing`).
 
 ### Outputs
 

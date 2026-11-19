@@ -16,14 +16,17 @@ run-name: >-
 # Removing a unit is a destroy dispatched by Backstage *before* its YAML is
 # deleted; a deleted YAML on its own plans nothing.
 #
-# Units run on the self-hosted runner in the management VPC (EKS endpoints are
-# private); module tests on GitHub-hosted runners.
+# Units run on the self-hosted runner in the management VPC (cluster endpoints
+# are private); module tests on GitHub-hosted runners. Each run stages its
+# module for the unit's cloud first (scripts/stage-module): the module, plus
+# modules/_cloud/<cloud> (backend, provider), plus its cloud/<cloud> slice.
 
 on:
   pull_request:
     paths:
       - "environments/**.yaml"
       - "modules/**"
+      - "scripts/**"
       - ".github/**"
   workflow_dispatch:
     inputs:
@@ -82,11 +85,17 @@ jobs:
             # A fork's pull request never schedules work on the self-hosted
             # runner (it can reach every cluster).
             if [ -n "$HEAD_REPO" ] && [ "$HEAD_REPO" != "$REPO" ]; then files=""; fi
-            # modules/<name>; _boilerplate is documentation, not a module.
-            modules=$(git diff --name-only "$base...HEAD" -- 'modules/' \
-              | cut -d/ -f1-2 | grep -v '^modules/_boilerplate$' | sort -u || true)
+            # modules/<name>; _boilerplate (docs) and _cloud (shared per-cloud
+            # files) are not modules.
+            changed=$(git diff --name-only "$base...HEAD" -- 'modules/' 'scripts/')
+            modules=$(cut -d/ -f1-2 <<<"$changed" | grep -E '^modules/[^_]' | sort -u || true)
             # Only directories are modules: files beside them are docs.
             modules=$(while read -r d; do if [ -d "$d" ]; then printf '%s\n' "$d"; fi; done <<<"$modules")
+            # Every component stages _cloud and calls cluster through the
+            # scripts: a change to any of them re-tests every module.
+            if grep -qE '^(modules/_cloud/|modules/cluster/|scripts/)' <<<"$changed"; then
+              modules=$(find modules -mindepth 1 -maxdepth 1 -type d ! -name '_*' | sort)
+            fi
           fi
           units=$(printf '%s\n' "$files" | jq -Rnc '[inputs | select(length > 0)]')
           modules=$(printf '%s\n' "$modules" | jq -Rnc '[inputs | select(length > 0)]')
@@ -94,13 +103,14 @@ jobs:
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           echo "units: $units"; echo "modules: $modules"
 
-  # The unit parser's own tests.
+  # The unit parser's and the staging script's own tests.
   script-tests:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: .github/scripts/read-unit.test.sh
+      - run: scripts/tests/stage-module.test.sh
 
   # Module changes: terraform test against mock providers, no AWS access.
   module-tests:
@@ -118,11 +128,11 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
       - name: terraform test
-        working-directory: ${{ matrix.module }}
+        env:
+          MODULE: ${{ matrix.module }}
         run: |
-          terraform fmt -check -recursive
-          terraform init -backend=false
-          if ls tests/*.tftest.hcl >/dev/null 2>&1; then terraform test; else terraform validate; fi
+          terraform fmt -check -recursive "$MODULE"
+          scripts/test-module "$MODULE"
 
   unit:
     needs: changes
@@ -152,6 +162,13 @@ jobs:
           ref: ${{ steps.unit.outputs.module_ref }}
           path: src
 
+      # The module for the unit's cloud, from the same ref as the module.
+      - name: Stage module
+        env:
+          CLOUD: ${{ steps.unit.outputs.cloud }}
+          RESOURCE_SET: ${{ steps.unit.outputs.resource_set }}
+        run: src/scripts/stage-module "src/modules/$RESOURCE_SET" "$CLOUD" "$RUNNER_TEMP/stage"
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
@@ -164,7 +181,7 @@ jobs:
           aws-region: ${{ steps.unit.outputs.aws_region }}
 
       - name: terraform init
-        working-directory: src/modules/${{ steps.unit.outputs.resource_set }}
+        working-directory: ${{ runner.temp }}/stage
         # The state lives in the unit's account: the backend uses the job's
         # credentials, as the providers and state reads do.
         env:
@@ -185,7 +202,7 @@ jobs:
           terraform init -backend-config="$backend"
 
       - name: terraform ${{ steps.unit.outputs.action }}
-        working-directory: src/modules/${{ steps.unit.outputs.resource_set }}
+        working-directory: ${{ runner.temp }}/stage
         env:
           TF_VAR_config_file: ${{ github.workspace }}/${{ matrix.config_file }}
           TF_VAR_pipeline_user: ${{ github.actor }}
