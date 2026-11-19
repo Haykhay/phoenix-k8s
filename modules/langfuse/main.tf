@@ -1,16 +1,6 @@
 # Langfuse: LLM tracing and evaluation for the cluster's model workloads.
 # Bundled Postgres, ClickHouse and Redis (sandbox-sized); blob storage in the
-# group's long-lived observability bucket.
-data "terraform_remote_state" "observability" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${module.context.group}-${local.config.observability_environment}/${local.region}/observability/terraform.tfstate"
-  }
-  defaults = {}
-}
-
+# group's long-lived observability storage.
 resource "terraform_data" "validation" {
   lifecycle {
     precondition {
@@ -64,18 +54,14 @@ resource "helm_release" "this" {
       nextauth       = { url = "https://${local.hostname}" }
       serviceAccount = { create = true, name = local.service_account }
     }
-    s3 = {
-      deploy          = false
-      storageProvider = "s3"
-      bucket          = local.bucket
-      region          = local.region
-      # Real S3: virtual-hosted addressing (path style is for S3-compatible stores).
-      forcePathStyle = false
-      # Credentials come from Pod Identity (langfuse/langfuse), not keys.
+    # Blob storage: the chart's s3 block on every cloud (storageProvider picks
+    # the backend); the cloud's fields come from the slice.
+    s3 = merge({
+      deploy      = false
       eventUpload = { prefix = "${local.blob_prefix}events/" }
       mediaUpload = { prefix = "${local.blob_prefix}media/" }
       batchExport = { prefix = "${local.blob_prefix}exports/" }
-    }
+    }, local.slice.object_storage)
   })]
 
   set_sensitive = [

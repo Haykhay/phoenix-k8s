@@ -8,7 +8,7 @@ locals {
 
   config = merge(local.defaults, module.context.spec)
 
-  # Must match core-platform's Pod Identity binding (langfuse/langfuse).
+  # Must match core-platform's identity binding (langfuse/langfuse).
   namespace       = "langfuse"
   service_account = "langfuse"
 
