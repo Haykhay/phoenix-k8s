@@ -21,7 +21,7 @@ environments/<tier>/<env_id>/<region>/<cluster>/<component>[.<instance>].yaml   
 modules/<component>/        one plain Terraform root per component
 modules/cluster/            shared: finds the unit's EKS cluster in infrastructure's state
 modules/_boilerplate/       the three files every component starts from (documentation, not a module)
-modules/_cloud/<cloud>/     backend, cloud provider and its version, added when a module is staged
+modules/_cloud/<cloud>/     cloud_backend.tf, cloud_provider.tf and the provider entry merged into versions.tf when a module is staged
 scripts/                    stage-module, test-module, test-all
 ```
 

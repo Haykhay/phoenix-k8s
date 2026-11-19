@@ -89,7 +89,7 @@ provider "kubernetes" {
 
 ## `versions.tf`
 
-The cloud provider (`aws`, `azurerm`) is declared in `_cloud/<cloud>/versions.tf`.
+The cloud provider (`aws`, `azurerm`) is added to this block by `stage-module`, from `_cloud/<cloud>/required_providers.hcl`: Terraform allows one `required_providers` block per module.
 
 ```hcl
 terraform {
