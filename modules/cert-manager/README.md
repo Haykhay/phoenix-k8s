@@ -80,3 +80,17 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Destroy these first, on the same cluster: `clickhouse-operator`, `istio`, `kargo`, `langfuse`. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`
+and `terraform_data.slice_ready` (the release waits on it):
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `service_account_annotations` | `{}` (Pod Identity binds the role) |
+| `dns01_solver` | `{ public, internal }`: a `route53` solver (region, hosted zone ID) per zone; the issuer chart renders it as is |
+| `slice_ready` | the IAM role attached and Pod Identity propagated |
+
+The IAM role and policy (`iam.tf`), `hosted_zone_arns` and the `role_arn`
+output are AWS-only and live in `cloud/aws/`.

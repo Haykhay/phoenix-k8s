@@ -12,16 +12,12 @@ spec:
       name: letsencrypt-prod
     solvers:
       - dns01:
-          route53:
-            region: {{ .Values.awsRegion }}
-            hostedZoneID: {{ .Values.publicZoneId }}
+          {{- toYaml .Values.dns01.public | nindent 10 }}
         selector:
           dnsZones:
             - {{ .Values.publicZoneName | quote }}
       - dns01:
-          route53:
-            region: {{ .Values.awsRegion }}
-            hostedZoneID: {{ .Values.internalZoneId }}
+          {{- toYaml .Values.dns01.internal | nindent 10 }}
         selector:
           dnsZones:
             - {{ .Values.internalZoneName | quote }}

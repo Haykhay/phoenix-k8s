@@ -3,11 +3,6 @@ output "cluster_issuers" {
   value       = ["letsencrypt-prod", "letsencrypt-staging"]
 }
 
-output "role_arn" {
-  description = "IAM role its service account uses, through Pod Identity."
-  value       = try(aws_iam_role.this[0].arn, null)
-}
-
 output "resource_summary" {
   value = {
     environment   = local.environment
