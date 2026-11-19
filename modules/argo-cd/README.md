@@ -68,14 +68,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/argo-cd
+scripts/stage-module modules/argo-cd aws /tmp/argo-cd   # from the repo root: the module plus _cloud/aws
+cd /tmp/argo-cd
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/argo-cd/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/argo-cd.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `ecr_pull_through_scoped`, `repo_url_required`, `personal_env_names_fit`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/argo-cd` (`plans_with_defaults`, `ecr_pull_through_scoped`, `repo_url_required`, `personal_env_names_fit`, `disabled_plans_nothing`).
 
 ### Outputs
 

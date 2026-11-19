@@ -10,7 +10,7 @@ variable "pipeline_user" {
 }
 
 module "context" {
-  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/context?ref=v1.0.0"
+  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/context?ref=v1.1.0"
 
   config_file   = var.config_file
   resource_set  = "cluster-config"
@@ -20,6 +20,7 @@ module "context" {
 module "cluster" {
   source = "../cluster"
 
+  cloud    = module.context.cloud
   state    = module.context.state
   env_id   = module.context.env_id
   region   = module.context.region

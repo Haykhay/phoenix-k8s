@@ -38,14 +38,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/clickhouse-operator
+scripts/stage-module modules/clickhouse-operator aws /tmp/clickhouse-operator   # from the repo root: the module plus _cloud/aws
+cd /tmp/clickhouse-operator
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/clickhouse-operator/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/clickhouse-operator.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/clickhouse-operator` (`plans_with_defaults`, `disabled_plans_nothing`).
 
 ### Outputs
 

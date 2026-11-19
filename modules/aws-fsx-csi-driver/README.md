@@ -56,14 +56,15 @@ The identity block is the same as every unit's (see [`../../README.md`](../../RE
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/aws-fsx-csi-driver
+scripts/stage-module modules/aws-fsx-csi-driver aws /tmp/aws-fsx-csi-driver   # from the repo root: the module plus _cloud/aws
+cd /tmp/aws-fsx-csi-driver
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/aws-fsx-csi-driver/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/aws-fsx-csi-driver.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `volume_comes_from_state`, `no_model_cache_installs_driver_only`, `shared_class_uses_fsx`, `driver_role_scoped_to_cluster`, `lustre_ports_from_nodes`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/aws-fsx-csi-driver` (`plans_with_defaults`, `volume_comes_from_state`, `no_model_cache_installs_driver_only`, `shared_class_uses_fsx`, `driver_role_scoped_to_cluster`, `lustre_ports_from_nodes`, `disabled_plans_nothing`).
 
 ### Outputs
 

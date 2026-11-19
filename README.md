@@ -20,7 +20,9 @@ and that PR re-runs every module's tests.
 environments/<tier>/<env_id>/<region>/<cluster>/<component>[.<instance>].yaml   one unit per file, written by Backstage
 modules/<component>/        one plain Terraform root per component
 modules/cluster/            shared: finds the unit's EKS cluster in infrastructure's state
-modules/_boilerplate/       the four files every component starts from (documentation, not a module)
+modules/_boilerplate/       the three files every component starts from (documentation, not a module)
+modules/_cloud/<cloud>/     backend, cloud provider and its version, added when a module is staged
+scripts/                    stage-module, test-module, test-all
 ```
 
 - `<cluster>`: the key in core-platform's `clusters` (`"1"`).
@@ -132,12 +134,14 @@ work (see the design's Deferred section).
 
 ## Adding a component
 
-1. `modules/<component>/` with the four files from
+1. `modules/<component>/` with the three files from
    [`modules/_boilerplate`](modules/_boilerplate/README.md) (set `resource_set`),
    plus its resources reading `module.context.spec`; pin chart versions in
    `locals.defaults` (released at least two weeks earlier).
-2. `tests/<component>.tftest.hcl` with `plans_with_defaults` and
-   `disabled_plans_nothing` at least (mock aws, helm, kubernetes).
+2. `tests/aws/<component>.tftest.hcl` with `plans_with_defaults` and
+   `disabled_plans_nothing` at least (mock aws, helm, kubernetes); run it with
+   `scripts/test-module modules/<component>`. Cloud-specific resources go in
+   `cloud/<cloud>/`, never at the module root.
 3. A `component-<name>` entity in the Backstage repository's `phoenix/catalog/components.yaml`
    with its prerequisites, and the component added to every option that needs
    it (options list their full set).

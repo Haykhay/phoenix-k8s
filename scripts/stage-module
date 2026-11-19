@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# stage-module <module-dir> <cloud> <out-dir>
+# Builds a runnable copy of a component for one cloud: the module's own files,
+# then modules/_cloud/<cloud>/*.tf (backend, cloud provider), then the module's
+# cloud/<cloud>/*.tf (its slice). Relative module sources ("../cluster") are
+# rewritten to resolve from <out-dir>. Tests: scripts/tests/stage-module.test.sh
+set -euo pipefail
+[ $# -eq 3 ] || { echo "usage: stage-module <module-dir> <cloud> <out-dir>" >&2; exit 2; }
+cloud=$2
+case "$cloud" in aws|azure) ;; *) echo "unknown cloud: $cloud (aws|azure)" >&2; exit 2 ;; esac
+module=$(cd "$1" && pwd -P)
+root=$(cd "$(dirname "$0")/.." && pwd)
+shared="$root/modules/_cloud/$cloud"
+[ -d "$shared" ] || { echo "no $shared" >&2; exit 2; }
+
+rm -rf "$3"; mkdir -p "$3"; out=$(cd "$3" && pwd -P)
+# The module, without Terraform's working files or other clouds' slices.
+(cd "$module" && tar -cf - --exclude ./.terraform --exclude ./.terraform.lock.hcl --exclude ./cloud .) | (cd "$out" && tar -xf -)
+cp "$shared"/*.tf "$out/"
+if [ -d "$module/cloud/$cloud" ]; then cp "$module/cloud/$cloud"/*.tf "$out/"; fi
+
+# "../x" in the module means <module's parent>/x; Terraform only accepts
+# relative local sources, so point them at the same place from <out-dir>.
+rel=$(python3 -c 'import os, sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "$(dirname "$module")" "$out")
+case "$rel" in .*) ;; *) rel="./$rel" ;; esac
+for f in "$out"/*.tf; do
+  sed -i.bak -E "s#(source[[:space:]]*=[[:space:]]*\")\.\./#\1$rel/#" "$f" && rm -f "$f.bak"
+done
+echo "$out"

@@ -47,14 +47,15 @@ The identity block is the same as every unit's (see [`../../README.md`](../../RE
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/neuron-device-plugin
+scripts/stage-module modules/neuron-device-plugin aws /tmp/neuron-device-plugin   # from the repo root: the module plus _cloud/aws
+cd /tmp/neuron-device-plugin
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/neuron-device-plugin/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/neuron-device-plugin.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/neuron-device-plugin` (`plans_with_defaults`, `disabled_plans_nothing`).
 
 ### Outputs
 

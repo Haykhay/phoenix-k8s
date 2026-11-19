@@ -52,14 +52,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/external-dns
+scripts/stage-module modules/external-dns aws /tmp/external-dns   # from the repo root: the module plus _cloud/aws
+cd /tmp/external-dns
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/external-dns/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/external-dns.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `zone_scoped_iam`, `extra_zone_on_request`, `personal_env_names_fit`, `no_dns_rejected`, `disabled_plans_nothing`).
+Tests, no AWS needed: `scripts/test-module modules/external-dns` (`plans_with_defaults`, `zone_scoped_iam`, `extra_zone_on_request`, `personal_env_names_fit`, `no_dns_rejected`, `disabled_plans_nothing`).
 
 ### Outputs
 

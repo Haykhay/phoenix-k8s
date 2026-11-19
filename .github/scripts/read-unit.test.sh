@@ -32,6 +32,11 @@ got=$(run "$unit" pull_request refs/pull/1/merge) || bad "valid unit is accepted
 grep -qx 'state_key=research-sandbox/eu-west-1/k8s/1/vllm/terraform.tfstate' <<<"$got" && ok "state key" || bad "state key: $got"
 grep -qx 'resource_set=vllm' <<<"$got" && ok "resource set" || bad "resource set"
 grep -qx 'role_arn=arn:aws:iam::111111111111:role/Terraform-Plan-Role' <<<"$got" && ok "pull requests plan as Terraform-Plan-Role" || bad "plan role"
+grep -qx 'cloud=aws' <<<"$got" && ok "a unit without cloud is aws" || bad "cloud defaults to aws"
+
+sed 's/^tier: sandbox$/tier: sandbox\ncloud: gcp/' "$unit" > "$unit.tmp" && mv "$unit.tmp" environments/sandbox/research-sandbox/eu-west-1/1/vllm.yaml
+run "$unit" pull_request x >/dev/null && bad "an unknown cloud is refused" || ok "an unknown cloud is refused"
+sed -i.bak '/^cloud: gcp$/d' "$unit" && rm -f "$unit.bak"
 
 got=$(run "$unit" workflow_dispatch refs/heads/main apply)
 grep -qx 'role_arn=arn:aws:iam::111111111111:role/Terraform-Role' <<<"$got" && ok "main runs as Terraform-Role" || bad "main role"

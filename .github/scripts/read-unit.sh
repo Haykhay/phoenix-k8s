@@ -20,6 +20,8 @@ fi
 [ "$rs" != cluster ] && [ "$rs" != _boilerplate ] && [ -d "modules/$rs" ] || err "no component modules/$rs"
 
 y() { yq -r "$1" "$FILE"; }
+cloud=$(y '.cloud // "aws"')
+[[ "$cloud" == aws || "$cloud" == azure ]] || err "cloud must be aws or azure, not $cloud"
 [ "$(y .cluster)" = "$cluster" ] || err "cluster in the YAML ($(y .cluster)) does not match the path ($cluster)"
 [ "$(y .tier)" = "$tier" ] || err "tier in the YAML ($(y .tier)) does not match the path ($tier)"
 yaml_env_id=$(y '[.group, .environment, .requester] | map(select(. != null)) | join("-")')
@@ -39,6 +41,7 @@ if [ "$GITHUB_EVENT_NAME" = pull_request ]; then role=Terraform-Plan-Role; else 
 
 {
   echo "action=$ACTION"
+  echo "cloud=$cloud"
   echo "resource_set=$rs"
   echo "module_ref=$(y '.module_ref // "main"')"
   echo "role_arn=arn:aws:iam::$account_id:role/$role"

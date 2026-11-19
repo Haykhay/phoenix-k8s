@@ -68,14 +68,15 @@ One file per cluster. The identity block is the same as every unit's (see [`../.
 Through the pipeline: Backstage dispatches `.github/workflows/terraform.yml` with `config_file` set to the unit's path and `action` `plan`, `apply` or `destroy`. Locally:
 
 ```bash
-cd modules/istio
+scripts/stage-module modules/istio aws /tmp/istio   # from the repo root: the module plus _cloud/aws
+cd /tmp/istio
 terraform init -backend-config="bucket=<state bucket>" -backend-config="region=<state region>" \
   -backend-config="key=<env_id>/<region>/k8s/<cluster>/istio/terraform.tfstate" \
   -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 terraform plan -var config_file=/path/to/istio.yaml
 ```
 
-Tests, no AWS needed: `terraform init -backend=false && terraform test` (`plans_with_defaults`, `gateway_and_inference_crds`, `external_gateway_on_request`, `no_dns_rejected`, `disabled_plans_nothing`, `internal_nlb_preserves_client_ip`, `gateway_metrics_carry_consumer`).
+Tests, no AWS needed: `scripts/test-module modules/istio` (`plans_with_defaults`, `gateway_and_inference_crds`, `external_gateway_on_request`, `no_dns_rejected`, `disabled_plans_nothing`, `internal_nlb_preserves_client_ip`, `gateway_metrics_carry_consumer`).
 
 ### Outputs
 
