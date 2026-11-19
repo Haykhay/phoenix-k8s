@@ -1,5 +1,5 @@
-# OpenCost: what each node, namespace and model costs per hour, from AWS list
-# prices. It reads the cluster's own Mimir (grafana-stack) instead of running a
+# OpenCost: what each node, namespace and model costs per hour, from the
+# cloud's list prices. It reads the cluster's own Mimir (grafana-stack) instead of running a
 # Prometheus of its own, and Alloy scrapes its cost metrics back into Mimir
 # for the Cost dashboard.
 resource "helm_release" "this" {
@@ -13,12 +13,12 @@ resource "helm_release" "this" {
 
   values = [yamlencode({
     podAnnotations = { "prometheus.io/scrape" = "true", "prometheus.io/port" = "9003" }
-    opencost = {
+    opencost = merge({
       exporter = { defaultClusterId = local.cluster_name }
       prometheus = {
         internal = { enabled = false }
         external = { enabled = true, url = "http://mimir-gateway.monitoring.svc/prometheus" }
       }
-    }
+    }, local.slice.pricing_values)
   })]
 }
