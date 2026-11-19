@@ -13,33 +13,9 @@ resource "random_password" "token_signing_key" {
   special = false
 }
 
-resource "aws_secretsmanager_secret" "admin" {
-  count                   = local.is_management ? 1 : 0
-  name                    = "${local.secret_path}/admin"
-  recovery_window_in_days = 0
-}
-
-resource "aws_secretsmanager_secret_version" "admin" {
-  count     = local.is_management ? 1 : 0
-  secret_id = aws_secretsmanager_secret.admin[0].id
-  secret_string = jsonencode({
-    password                        = random_password.admin[0].result
-    ADMIN_ACCOUNT_PASSWORD_HASH     = bcrypt(random_password.admin[0].result)
-    ADMIN_ACCOUNT_TOKEN_SIGNING_KEY = random_password.token_signing_key[0].result
-  })
-
-  lifecycle {
-    ignore_changes = [secret_string]
-  }
-}
-
 # ── Credential locals consumed by main.tf ────────────────────────────────────
 
 locals {
-  kargo_admin_password_hash = (local.is_management
-    ? jsondecode(aws_secretsmanager_secret_version.admin[0].secret_string)["ADMIN_ACCOUNT_PASSWORD_HASH"]
-  : "")
-  kargo_token_signing_key = (local.is_management
-    ? jsondecode(aws_secretsmanager_secret_version.admin[0].secret_string)["ADMIN_ACCOUNT_TOKEN_SIGNING_KEY"]
-  : "")
+  kargo_admin_password_hash = local.is_management ? local.slice.admin_password_hash : ""
+  kargo_token_signing_key   = local.is_management ? local.slice.token_signing_key : ""
 }

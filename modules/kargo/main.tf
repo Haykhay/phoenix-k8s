@@ -5,7 +5,7 @@ resource "terraform_data" "validation" {
       error_message = "the Kargo API route needs the cluster's DNS zone from infrastructure's dns unit."
     }
     precondition {
-      condition     = !local.is_spoke || can(data.terraform_remote_state.management[0].outputs.remote_kubeconfig_secret)
+      condition     = !local.is_spoke || can(local.management_outputs.remote_kubeconfig_secret)
       error_message = "cluster ${local.cluster_key} is a Kargo spoke of cluster ${local.management_cluster}, whose kargo unit has not been applied. Apply environments/.../${local.management_cluster}/kargo.yaml first."
     }
   }
@@ -34,7 +34,7 @@ resource "helm_release" "this" {
     })
   ]
 
-  depends_on = [terraform_data.validation, kubernetes_secret_v1.kargo_management_kubeconfig, time_sleep.pod_identity_propagation]
+  depends_on = [terraform_data.validation, kubernetes_secret_v1.kargo_management_kubeconfig, terraform_data.slice_ready]
 }
 
 # The Kargo API/UI on istio's internal gateway (management only).

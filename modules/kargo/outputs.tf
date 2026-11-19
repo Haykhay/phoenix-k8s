@@ -8,11 +8,6 @@ output "shard" {
   value       = local.shard
 }
 
-output "remote_kubeconfig_secret" {
-  description = "Management only: Secrets Manager secret with the kubeconfig spokes use. Spokes read this from this unit's state."
-  value       = try(aws_secretsmanager_secret.remote_kubeconfig[0].name, null)
-}
-
 output "url" {
   description = "Kargo UI; management cluster only."
   value       = local.is_management ? "https://${local.api_host}" : null

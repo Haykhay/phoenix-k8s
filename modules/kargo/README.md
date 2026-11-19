@@ -96,3 +96,21 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Nothing else on the cluster depends on it. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`,
+`local.management_outputs` and `terraform_data.slice_ready` (the release
+waits on it):
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `admin_password_hash`, `token_signing_key` | management: frozen in Secrets Manager at first apply (`secret_store.tf`) |
+| `remote_kubeconfig` | spoke: the kubeconfig the management cluster stored (`spoke_link.tf`) |
+| `management_outputs` (own local) | spoke: the management cluster's kargo unit outputs from its S3 state, `{}` until applied. Not a slice key: the validation reads it before the kubeconfig is read |
+| `slice_ready` | Pod Identity propagated |
+
+AWS-only, in `cloud/aws/`: the controller's role (`iam.tf`), the Secrets
+Manager secrets and the `remote_kubeconfig_secret` output (`secret_store.tf`),
+and the spoke's S3 state read, kubeconfig read and security group rule to the
+management cluster's API (`spoke_link.tf`).
