@@ -7,19 +7,15 @@ resource "terraform_data" "validation" {
   }
 }
 
-# Passwords at <organisation>/<env_id>/redis/in-cluster/<instance>[/<user>],
-# where external-secrets may read them.
-module "credentials" {
-  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/credentials?ref=v1.1.0"
-
-  organisation = local.organisation
-
-  credentials = local.config.enabled ? merge(
+# What the credentials module creates and publishes (cloud/<cloud>/credentials.tf:
+# Secrets Manager on AWS), in the platform's shared policies.
+locals {
+  credentials_requests = local.config.enabled ? merge(
     { default = { policy = "redis_incluster", username = "default" } },
     { for name, u in local.users : "user-${name}" => { policy = "redis_incluster", username = name } },
   ) : {}
 
-  publish = local.config.enabled ? merge(
+  credentials_publish = local.config.enabled ? merge(
     {
       default = {
         environment = local.environment
@@ -56,6 +52,7 @@ resource "helm_release" "cluster" {
   cleanup_on_fail  = true
 
   values = [yamlencode({
+    secretStore         = local.slice.secret_store
     clusterName         = local.vk_cluster_name
     shards              = local.config.shards
     replicas            = local.config.replicas
