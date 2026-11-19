@@ -55,19 +55,29 @@ locals {
   # Every object lands under <signal prefix><cluster name>/, the only path the
   # writer roles allow. Mimir's prefix may only be alphanumeric, so the cluster
   # name comes in as its tenant (objects at <prefix>/<tenant>/).
+  loki_prefix  = "${local.prefixes.loki}${local.cluster_name}"
+  tempo_prefix = "${local.prefixes.tempo}${local.cluster_name}"
+
   template_vars = {
     cluster_name = local.cluster_name
     region       = local.region
     bucket       = local.bucket
     mimir_prefix = trimsuffix(local.prefixes.mimir, "/")
-    loki_prefix  = "${local.prefixes.loki}${local.cluster_name}"
-    tempo_prefix = "${local.prefixes.tempo}${local.cluster_name}"
+    loki_prefix  = local.loki_prefix
+    tempo_prefix = local.tempo_prefix
     namespace    = local.namespace
     global_on    = local.global_on
     global_url   = local.global_url
     global_regex = join("|", local.global_allowlist)
     env_id       = module.context.env_id
     tier         = module.context.tier
+    # The cloud's pieces (cloud/<cloud>/slice.tf).
+    cloud             = local.slice.cloud
+    mimir_storage     = local.slice.object_storage.mimir
+    loki_storage      = local.slice.object_storage.loki
+    loki_schema_store = local.slice.object_storage.loki_schema_store
+    tempo_storage     = local.slice.object_storage.tempo
+    cloud_datasources = local.slice.cloud_datasources
   }
 
   # llm-d's published dashboards, vendored unmodified from llm-d v0.10.0

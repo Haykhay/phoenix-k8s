@@ -18,10 +18,5 @@ datasources:
         type: tempo
         uid: tempo
         url: http://tempo.${namespace}.svc:3200
-      # Credentials from Pod Identity (monitoring/grafana -> CloudWatch read role).
-      - name: CloudWatch
-        type: cloudwatch
-        uid: cloudwatch
-        jsonData:
-          authType: default
-          defaultRegion: ${region}
+      # The cloud's own monitoring, read with grafana's cloud identity.
+      ${indent(6, yamlencode(cloud_datasources))}

@@ -1,2 +1,4 @@
 send: null
 receive: null
+# The ClusterSecretStore the ExternalSecrets read from (the cloud slice).
+secretStore: ""

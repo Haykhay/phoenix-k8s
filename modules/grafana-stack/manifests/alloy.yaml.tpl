@@ -73,7 +73,7 @@ alloy:
           cluster = "${cluster_name}",
           env_id  = "${env_id}",
           tier    = "${tier}",
-          cloud   = "aws",
+          cloud   = "${cloud}",
         }
       }
 %{ endif ~}

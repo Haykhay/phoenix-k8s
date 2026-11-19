@@ -172,3 +172,16 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 `opencost` depends on it (it reads Mimir). Backstage destroys in reverse install order, so `opencost` goes first.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`
+and the state reads `data.terraform_remote_state.observability` and `.istio`
+(`state.tf`, same names on every cloud):
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `cloud` | `aws`, Alloy's `cloud` external label |
+| `secret_store` | `aws-secretsmanager`, the ClusterSecretStore global-metrics reads from |
+| `object_storage` | `{ mimir, loki, loki_schema_store, tempo }`: each signal's S3 block, rendered as is into its chart values |
+| `cloud_datasources` | Grafana's CloudWatch data source (Pod Identity read role) |

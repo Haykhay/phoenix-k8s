@@ -1,27 +1,6 @@
 # Each cluster's own Grafana stack: Mimir (metrics), Loki (logs), Tempo
 # (traces), Alloy (collection) and Grafana. History goes to the group's
 # long-lived observability bucket, so it survives weekend teardowns.
-data "terraform_remote_state" "observability" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${module.context.group}-${local.config.observability_environment}/${local.region}/observability/terraform.tfstate"
-  }
-  defaults = {}
-}
-
-# The management cluster's internal gateway, for global_receiver's route.
-data "terraform_remote_state" "istio" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${local.environment}/${local.region}/k8s/${local.cluster_key}/istio/terraform.tfstate"
-  }
-  defaults = {}
-}
-
 resource "terraform_data" "validation" {
   lifecycle {
     precondition {
@@ -147,7 +126,8 @@ resource "helm_release" "global_metrics" {
   namespace = local.namespace
 
   values = [yamlencode({
-    send = local.global_on ? { secretName = local.send_secret } : null
+    secretStore = local.slice.secret_store
+    send        = local.global_on ? { secretName = local.send_secret } : null
     receive = local.receiver_on ? {
       secretName = local.global_secret
       hostname   = local.receiver_host
