@@ -102,3 +102,12 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Nothing else on the cluster depends on it. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/slice.tf` (staged in by `scripts/stage-module`) defines `local.slice`:
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `registry_patterns` | `{ managed, allowed }`: any ECR image is internal; internal images must come from the account's own ECR (pull-through cache). Settings still override |
+| `quota_keys` | accelerators a quota can count: `nvidia` (`requests.nvidia.com/gpu`), `neuron` (`requests.aws.amazon.com/neuron`) |
