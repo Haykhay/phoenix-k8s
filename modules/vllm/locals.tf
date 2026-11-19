@@ -38,7 +38,7 @@ locals {
     wake_query = null
     extra_args = []
     image_tag  = "v0.31.0"
-    hardware   = "nvidia" # or neuron: must match the pool's accelerator
+    hardware   = "nvidia" # or the cloud's own (neuron on AWS): must match the pool's accelerator
     # Share of the GPU's memory vLLM may take (0-1]. Required on a time-sliced
     # pool, at most 1 / its time_slice_replicas; Backstage writes 0.9 / replicas.
     gpu_memory_utilization = null
@@ -93,26 +93,23 @@ locals {
 
   weights          = try(data.terraform_remote_state.weights.outputs, {})
   cache_path       = try(local.weights.cache_path, null) == null ? "" : local.weights.cache_path
-  fsx              = try(data.terraform_remote_state.fsx.outputs, {})
+  cache            = local.slice.cache_claim
   pool_accelerator = try(data.terraform_remote_state.gpu_pool.outputs.accelerator, "nvidia")
   # > 0: the pool shares each GPU this many ways (karpenter-nodepool time_slice_replicas).
   pool_time_slice = try(data.terraform_remote_state.gpu_pool.outputs.time_slice_replicas, 0)
   memory_args     = local.config.gpu_memory_utilization == null ? [] : ["--gpu-memory-utilization=${local.config.gpu_memory_utilization}"]
-  hardware = {
+  # nvidia on every cloud, plus the cloud's own accelerators (the slice's).
+  hardware_profiles = merge({
     nvidia = {
       image       = { repository = "vllm/vllm-openai", tag = local.config.image_tag }
       accelerator = { resource = "nvidia.com/gpu", taint = "nvidia.com/gpu" }
       command     = [] # the image's entrypoint is the OpenAI server
     }
-    neuron = {
-      image       = { repository = "public.ecr.aws/neuron/pytorch-inference-vllm-neuronx", tag = local.config.neuron_image_tag }
-      accelerator = { resource = "aws.amazon.com/neuron", taint = "aws.amazon.com/neuron" }
-      # Its entrypoint runs whatever command it is given.
-      command = ["python", "-m", "vllm.entrypoints.openai.api_server"]
-    }
-  }[local.config.hardware == "neuron" ? "neuron" : "nvidia"]
+  }, local.slice.accelerators)
+  hardware = local.hardware_profiles[contains(keys(local.hardware_profiles), local.config.hardware) ? local.config.hardware : "nvidia"]
 
   served_name = coalesce(local.config.model, try(local.weights.model, null), local.slug)
-  # Loading from FSx is minutes, not hours, but a 600B model still needs time.
+  # Loading from the model cache is minutes, not hours, but a 600B model still
+  # needs time.
   startup_seconds = max(1800, coalesce(try(local.weights.size_gib, null), 0) * 6)
 }

@@ -268,3 +268,16 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Nothing else on the cluster depends on it. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`
+and the state reads `data.terraform_remote_state.istio`, `.gpu_pool`,
+`.weights`, `.fsx`, `.core_network` and `.llm_d` (`state.tf`, same names on
+every cloud):
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `cache_claim`, `cache_driver` | the read-only claim on the FSx model cache, from `aws-fsx-csi-driver`'s state |
+| `fabric_image` | EFA serving image (AWS vLLM DLC), used when an llm-d multi-node option runs on an EFA pool |
+| `accelerators` | accelerators besides `nvidia`: `neuron` (image, resource, command) |

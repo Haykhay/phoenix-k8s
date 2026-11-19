@@ -2,71 +2,6 @@
 # (with its endpoint picker) over its pods, and an HTTPRoute on istio's
 # internal gateway. Needs the cluster's istio unit and the karpenter-nodepool
 # unit for the model's GPU type.
-data "terraform_remote_state" "istio" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${local.environment}/${local.region}/k8s/${local.cluster_key}/istio/terraform.tfstate"
-  }
-  defaults = {}
-}
-
-data "terraform_remote_state" "gpu_pool" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${local.environment}/${local.region}/k8s/${local.cluster_key}/karpenter-nodepool.${coalesce(local.config.gpu, "none")}/terraform.tfstate"
-  }
-  defaults = {}
-}
-
-# The model's weights, copied by model-weights.<slug> on this cluster.
-data "terraform_remote_state" "weights" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${local.environment}/${local.region}/k8s/${local.cluster_key}/model-weights.${local.slug}/terraform.tfstate"
-  }
-  defaults = {}
-}
-
-# The read-only claim on the cluster's FSx model cache.
-data "terraform_remote_state" "fsx" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${local.environment}/${local.region}/k8s/${local.cluster_key}/aws-fsx-csi-driver/terraform.tfstate"
-  }
-  defaults = {}
-}
-
-# The environment's VPCs: the cluster's own VPC CIDR is the owner's identity
-# when spec.access.owner_cidrs is empty.
-data "terraform_remote_state" "core_network" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${local.environment}/${local.region}/core-network/terraform.tfstate"
-  }
-  defaults = {}
-}
-
-# The cluster's llm-d prerequisites: needed only when an llm-d option is on.
-data "terraform_remote_state" "llm_d" {
-  backend = "s3"
-  config = {
-    bucket = module.context.state.bucket
-    region = module.context.state.region
-    key    = "${local.environment}/${local.region}/k8s/${local.cluster_key}/llm-d/terraform.tfstate"
-  }
-  defaults = {}
-}
-
 resource "terraform_data" "validation" {
   lifecycle {
     precondition {
@@ -78,8 +13,8 @@ resource "terraform_data" "validation" {
       error_message = "spec.version (the model-weights version) and spec.gpu (GPU type) are required — Backstage fills both."
     }
     precondition {
-      condition     = !local.config.enabled || contains(["nvidia", "neuron"], local.config.hardware)
-      error_message = "spec.hardware must be nvidia or neuron."
+      condition     = !local.config.enabled || contains(keys(local.hardware_profiles), local.config.hardware)
+      error_message = "spec.hardware must be one of ${join(", ", sort(keys(local.hardware_profiles)))}."
     }
     precondition {
       condition     = !local.config.enabled || !can(data.terraform_remote_state.gpu_pool.outputs.node_pool) || local.config.hardware == local.pool_accelerator
@@ -155,8 +90,8 @@ resource "terraform_data" "validation" {
       error_message = "spec.version is ${coalesce(local.config.version, "unset")} but model-weights.${local.slug} copied ${coalesce(try(local.weights.version, null), "nothing")}: apply that version's weights first, or pin the version it has."
     }
     precondition {
-      condition     = !local.config.enabled || can(local.fsx.pvc_name)
-      error_message = "no model cache claim on cluster ${local.cluster_key}: apply aws-fsx-csi-driver first."
+      condition     = !local.config.enabled || can(local.cache.pvc_name)
+      error_message = "no model cache claim on cluster ${local.cluster_key}: apply ${local.slice.cache_driver} first."
     }
     precondition {
       condition     = !local.config.enabled || local.gateway != null
@@ -209,15 +144,15 @@ resource "helm_release" "server" {
     servedName     = local.served_name
     startupSeconds = local.startup_seconds
     cache = {
-      claim     = try(local.fsx.pvc_name, "")
-      mountPath = try(local.fsx.mount_path, "")
-      subPath   = try(local.fsx.sub_path, "")
+      claim     = try(local.cache.pvc_name, "")
+      mountPath = try(local.cache.mount_path, "")
+      subPath   = try(local.cache.sub_path, "")
     }
     prepull        = true
     replicas       = local.config.replicas
     maxModelLen    = local.config.max_model_len
     extraArgs      = concat(local.memory_args, local.config.extra_args)
-    image          = local.efa_on ? { repository = "public.ecr.aws/deep-learning-containers/vllm", tag = local.config.efa_image_tag } : local.hardware.image
+    image          = local.efa_on ? local.slice.fabric_image : local.hardware.image
     command        = local.hardware.command
     accelerator    = local.hardware.accelerator
     tensorParallel = coalesce(local.config.tensor_parallel_size, local.config.gpus_per_replica)
