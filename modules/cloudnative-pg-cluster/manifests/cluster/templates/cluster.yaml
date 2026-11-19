@@ -26,9 +26,9 @@ spec:
             metadata:
               name: {{ .Values.clusterName }}-nlb-rw
               annotations:
-                service.beta.kubernetes.io/aws-load-balancer-type: "external"
-                service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
-                service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+                {{- with .Values.nlb.annotations }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
                 external-dns.alpha.kubernetes.io/hostname: {{ .Values.nlb.hostname | quote }}
             spec:
               type: LoadBalancer

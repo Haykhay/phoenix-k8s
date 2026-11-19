@@ -6,3 +6,7 @@ databases: []
 nlb:
   enabled: false
   hostname: ""
+  # The cloud's internal load balancer annotations (the cloud slice).
+  annotations: {}
+# The ClusterSecretStore the ExternalSecrets read from (the cloud slice).
+secretStore: ""
