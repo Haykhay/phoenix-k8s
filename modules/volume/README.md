@@ -83,3 +83,11 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Nothing else on the cluster depends on it; the pods that mount it should go first. Destroying it deletes the data.
+
+## Cloud slice
+
+`cloud/<cloud>/slice.tf` (staged in by `scripts/stage-module`) defines `local.slice`:
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `shared_size_valid`, `shared_size_rule` | phoenix-shared is FSx for Lustre: 1200 GiB or a multiple of 2400 GiB |
