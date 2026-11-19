@@ -73,11 +73,11 @@ run "zone_scoped_iam" {
   command = plan
 
   assert {
-    condition     = length(local.route53_zone_ids) == 2 && contains(local.route53_zone_ids, "Z1PUB") && contains(local.route53_zone_ids, "Z1INT")
+    condition     = length(local.zone_ids) == 2 && contains(local.zone_ids, "Z1PUB") && contains(local.zone_ids, "Z1INT")
     error_message = "by default only the cluster's own public and internal zone"
   }
   assert {
-    condition     = toset(yamldecode(helm_release.this[0].values[0]).extraArgs) == toset([for z in local.route53_zone_ids : "--zone-id-filter=${z}"])
+    condition     = toset(yamldecode(helm_release.this[0].values[0]).extraArgs) == toset([for z in local.zone_ids : "--zone-id-filter=${z}"])
     error_message = "the zones it reconciles (--zone-id-filter; the chart has no zoneIdFilters value) are the zones its IAM policy covers"
   }
 }
@@ -102,7 +102,7 @@ run "extra_zone_on_request" {
   }
 
   assert {
-    condition     = length(local.route53_zone_ids) == 4 && contains(local.route53_zone_ids, "Z2INT")
+    condition     = length(local.zone_ids) == 4 && contains(local.zone_ids, "Z2INT")
     error_message = "naming zones extends both the filter and the IAM scope"
   }
 }

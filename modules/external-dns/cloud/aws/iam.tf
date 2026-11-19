@@ -20,7 +20,7 @@ data "aws_iam_policy_document" "this" {
     sid       = "ChangeRecordSets"
     effect    = "Allow"
     actions   = ["route53:ChangeResourceRecordSets"]
-    resources = [for id in local.route53_zone_ids : "arn:aws:route53:::hostedzone/${id}"]
+    resources = [for id in local.zone_ids : "arn:aws:route53:::hostedzone/${id}"]
   }
 
   statement {
