@@ -7,18 +7,14 @@ resource "terraform_data" "validation" {
   }
 }
 
-# SCRAM passwords at <organisation>/<env_id>/kafka/in-cluster/<instance>/<user>,
-# where external-secrets may read them.
-module "credentials" {
-  source = "git::https://github.com/Haykhay/phoenix-aws.git//infrastructure/modules/credentials?ref=v1.1.0"
-
-  organisation = local.organisation
-
-  credentials = local.config.enabled ? {
+# What the credentials module creates and publishes (cloud/<cloud>/credentials.tf:
+# Secrets Manager on AWS), in the platform's shared policies.
+locals {
+  credentials_requests = local.config.enabled ? {
     for name, u in local.users : "user-${name}" => { policy = "generic", username = u.k8s_name }
   } : {}
 
-  publish = local.config.enabled ? {
+  credentials_publish = local.config.enabled ? {
     for name, u in local.users : "user-${name}" => {
       environment = local.environment
       service     = "kafka"
@@ -96,6 +92,7 @@ resource "helm_release" "users" {
   cleanup_on_fail  = true
 
   values = [yamlencode({
+    secretStore = local.slice.secret_store
     clusterName = local.kafka_cluster_name
     users = [
       for name, u in local.users : {

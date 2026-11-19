@@ -1,0 +1,2 @@
+# The ClusterSecretStore the ExternalSecrets read from (the cloud slice).
+secretStore: ""
