@@ -34,10 +34,15 @@ server:
 dex:
   enabled: false
 
-# Pod Identity binds argocd-repo-server to its role (ECR pull for OCI charts).
+# The cloud slice binds argocd-repo-server to its identity (registry pulls
+# for OCI charts): Pod Identity on AWS, so no annotation there.
 repoServer:
   serviceAccount:
     name: argocd-repo-server
+%{ if length(sa_annotations) > 0 ~}
+    annotations:
+      ${indent(6, yamlencode(sa_annotations))}
+%{ endif ~}
   resources:
     requests:
       cpu: 100m

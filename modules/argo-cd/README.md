@@ -91,3 +91,20 @@ Plus `resource_summary`, for the pipeline's summary.
 ### Removing it
 
 Destroy these first, on the same cluster: `kargo`. Backstage destroys in reverse install order.
+
+## Cloud slice
+
+`cloud/<cloud>/` (staged in by `scripts/stage-module`) defines `local.slice`
+and `terraform_data.slice_ready` (the release waits on it):
+
+| Key | AWS (`cloud/aws`) |
+|---|---|
+| `service_account_annotations` | `{}` (Pod Identity binds argocd-repo-server) |
+| `admin_password_hash` | bcrypt hash frozen in Secrets Manager at first apply (`secret_store.tf`) |
+| `summary` | `{ role_arn }`, merged into `resource_summary` |
+| `slice_ready` | Pod Identity propagated |
+
+AWS-only, in `cloud/aws/`: the repo server's role (`iam.tf`), the Secrets
+Manager copies of the admin password and deploy key and the `admin_secret`
+output (`secret_store.tf`), and the ECR credentials release for OCI charts
+(`registry.tf`).

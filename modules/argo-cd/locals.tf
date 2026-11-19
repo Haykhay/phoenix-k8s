@@ -28,8 +28,4 @@ locals {
   # Secrets for humans (admin login) and the deploy key, per cluster.
   secret_path = "${local.organisation}/${local.environment}/argo-cd/${local.cluster_key}"
 
-  ecr_pull_arns = concat(
-    ["arn:aws:ecr:${local.region}:${local.account_id}:repository/${local.config.ecr_cache_prefix}/*"],
-    [for repo in try(local.config.settings.extra_ecr_pull_repos, []) : "arn:aws:ecr:${local.region}:${local.account_id}:repository/${repo}"],
-  )
 }
